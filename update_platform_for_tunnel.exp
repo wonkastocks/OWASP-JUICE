@@ -1,0 +1,61 @@
+#!/usr/bin/expect -f
+
+set timeout 60
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+# Update dashboard.php to use subdomain URLs instead of ports
+send "cd /var/www/ctf-platform/\r"
+expect "# "
+
+# Update dashboard.php directly with sed
+send "echo 'Updating dashboard for tunnel subdomains...'\r"
+expect "# "
+
+# Backup dashboard first
+send "cp dashboard.php dashboard.php.backup\r"
+expect "# "
+
+# Use sed to update the instance URL logic
+send "sed -i 's|\\$instanceUrl = \"http://155.138.197.128:\" . \\$port;|\\$instanceNumber = \\$port - 3000; \\$instanceUrl = \"https://instance\" . \\$instanceNumber . \".wonkatech.org\";|' dashboard.php\r"
+expect "# "
+
+
+# Verify the change
+send "grep instanceUrl dashboard.php\r"
+expect "# "
+
+# Also need to add the CNAME record for the main domain
+send "echo ''\r"
+expect "# "
+send "echo 'Trying to add main domain route...'\r"
+expect "# "
+send "cloudflared tunnel route dns wonkatech-ctf wonkatech.org --overwrite-dns || echo 'Main domain already routed'\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo 'Platform updated for Cloudflare Tunnel!'\r"
+expect "# "
+send "echo 'Users will now access instances at:'\r"
+expect "# "
+send "echo '  https://instance1.wonkatech.org (for user on port 3001)'\r"
+expect "# "
+send "echo '  https://instance2.wonkatech.org (for user on port 3002)'\r"
+expect "# "
+send "echo '  etc...'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'Make sure to delete the A record in Cloudflare DNS!'\r"
+expect "# "
+
+send "exit\r"
+expect eof

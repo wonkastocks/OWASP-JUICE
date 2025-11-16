@@ -1,0 +1,41 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+# Copy the PHP script
+spawn scp /tmp/create_unverified_user.php root@155.138.197.128:/var/www/ctf-platform/
+expect {
+    "password:" {
+        send "$password\r"
+        expect "100%"
+    }
+}
+
+# Now SSH and run it
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "cd /var/www/ctf-platform/\r"
+expect "# "
+
+# Run the script
+send "php create_unverified_user.php\r"
+expect "# "
+
+# Clean up
+send "rm create_unverified_user.php\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo 'Now test login with unverified_user / TestPass123!'\r"
+expect "# "
+
+send "exit\r"
+expect eof

@@ -1,0 +1,85 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+puts "🚀 Deploying Admin Panel to WonkaTech CTF Server..."
+
+# Create admin directory
+spawn ssh root@155.138.197.128
+expect {
+    "yes/no" { send "yes\r"; exp_continue }
+    "password:" { send "$password\r" }
+}
+expect "# "
+send "mkdir -p /var/www/html/admin\r"
+expect "# "
+send "exit\r"
+expect eof
+
+# Copy all files at once using tar
+puts "📤 Creating and copying admin panel archive..."
+exec tar czf /tmp/admin_panel.tar.gz -C /Users/walterbarr_1/sql-injection-lab admin
+
+spawn scp /tmp/admin_panel.tar.gz root@155.138.197.128:/tmp/
+expect {
+    "password:" { send "$password\r" }
+}
+expect eof
+
+# Extract and set up on server
+puts "📦 Extracting and configuring admin panel..."
+spawn ssh root@155.138.197.128
+expect {
+    "password:" { send "$password\r" }
+}
+expect "# "
+
+send "cd /tmp\r"
+expect "# "
+
+send "tar xzf admin_panel.tar.gz\r"
+expect "# "
+
+send "cp -r admin/* /var/www/html/admin/\r"
+expect "# "
+
+send "chown -R www-data:www-data /var/www/html/admin\r"
+expect "# "
+
+send "chmod -R 755 /var/www/html/admin\r"
+expect "# "
+
+send "chmod 640 /var/www/html/admin/config.php\r"
+expect "# "
+
+send "mkdir -p /var/lib/php/sessions\r"
+expect "# "
+
+send "chown www-data:www-data /var/lib/php/sessions\r"
+expect "# "
+
+send "chmod 700 /var/lib/php/sessions\r"
+expect "# "
+
+send "systemctl restart apache2\r"
+expect "# "
+
+send "rm -f /tmp/admin_panel.tar.gz\r"
+expect "# "
+
+send "rm -rf /tmp/admin\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+# Clean up local temp file
+exec rm -f /tmp/admin_panel.tar.gz
+
+puts "\n✅ Admin panel deployed successfully!"
+puts "\n📌 Admin Panel Access:"
+puts "   URL: http://155.138.197.128/admin/admin_login.php"
+puts "   Email: admin@wonkatech.com"
+puts "   Password: WonkaAdmin2024!"
+puts "\n🔒 Security Note: Consider changing the admin password in config.php"

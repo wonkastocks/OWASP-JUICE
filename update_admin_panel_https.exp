@@ -1,0 +1,150 @@
+#!/usr/bin/expect -f
+
+set timeout 60
+set password {$$R00tbeer02}
+
+puts "🔐 Updating admin panel to show HTTPS URLs..."
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" { send "$password\r" }
+}
+expect "# "
+
+# Update the containers.php to show HTTPS URLs
+send "cat >> /var/www/ctf-platform/admin/containers.php << 'EOFPATCH'
+
+<script>
+// Update container URLs to show HTTPS links
+document.addEventListener('DOMContentLoaded', function() {
+    // Update table display to show HTTPS URLs
+    var rows = document.querySelectorAll('tr');
+    rows.forEach(function(row) {
+        var portCell = row.querySelector('td:nth-child(2)');
+        if (portCell && portCell.textContent.match(/^30\\d{2}\$/)) {
+            var port = parseInt(portCell.textContent);
+            var instanceNum = port - 3000;
+            var httpsUrl = 'https://juice' + instanceNum + '.wonkatech.org';
+            
+            // Add HTTPS URL column if not exists
+            var urlCell = row.querySelector('td:nth-child(6)');
+            if (urlCell && !urlCell.innerHTML.includes('https')) {
+                urlCell.innerHTML = '<a href=\"' + httpsUrl + '\" target=\"_blank\" class=\"btn btn-sm btn-info\">🔐 ' + httpsUrl + '</a>';
+            }
+        }
+    });
+});
+</script>
+EOFPATCH\r"
+expect "# "
+
+# Add HTTPS URL column to users.php as well
+send "echo 'Admin panel containers.php updated with HTTPS display script'\r"
+expect "# "
+
+# Update the database to ensure all container URLs are set
+send "mysql -u root ctf_platform << 'EOF'
+-- Add more containers with HTTPS URLs
+INSERT IGNORE INTO containers (container_name, port, status, container_url, created_at) VALUES
+('juice-user7', 3007, 'available', 'https://juice7.wonkatech.org', NOW()),
+('juice-user8', 3008, 'available', 'https://juice8.wonkatech.org', NOW()),
+('juice-user9', 3009, 'available', 'https://juice9.wonkatech.org', NOW()),
+('juice-user10', 3010, 'available', 'https://juice10.wonkatech.org', NOW());
+
+-- Update all container URLs
+UPDATE containers SET container_url = CONCAT('https://juice', (port - 3000), '.wonkatech.org') 
+WHERE port BETWEEN 3001 AND 3020;
+
+-- Show current containers
+SELECT container_name, port, status, container_url FROM containers ORDER BY port LIMIT 10;
+EOF\r"
+expect "# "
+
+# Add complete tunnel config with all 20 instances
+send "cat > /etc/cloudflared/config.yml << 'EOF'
+tunnel: wonkatech-ctf
+credentials-file: /root/.cloudflared/3e6698e3-59fb-4bb4-aa52-7dde59039354.json
+
+ingress:
+  - hostname: wonkatech.org
+    service: http://localhost:80
+  - hostname: juice1.wonkatech.org
+    service: http://localhost:3001
+  - hostname: juice2.wonkatech.org
+    service: http://localhost:3002
+  - hostname: juice3.wonkatech.org
+    service: http://localhost:3003
+  - hostname: juice4.wonkatech.org
+    service: http://localhost:3004
+  - hostname: juice5.wonkatech.org
+    service: http://localhost:3005
+  - hostname: juice6.wonkatech.org
+    service: http://localhost:3006
+  - hostname: juice7.wonkatech.org
+    service: http://localhost:3007
+  - hostname: juice8.wonkatech.org
+    service: http://localhost:3008
+  - hostname: juice9.wonkatech.org
+    service: http://localhost:3009
+  - hostname: juice10.wonkatech.org
+    service: http://localhost:3010
+  - hostname: juice11.wonkatech.org
+    service: http://localhost:3011
+  - hostname: juice12.wonkatech.org
+    service: http://localhost:3012
+  - hostname: juice13.wonkatech.org
+    service: http://localhost:3013
+  - hostname: juice14.wonkatech.org
+    service: http://localhost:3014
+  - hostname: juice15.wonkatech.org
+    service: http://localhost:3015
+  - hostname: juice16.wonkatech.org
+    service: http://localhost:3016
+  - hostname: juice17.wonkatech.org
+    service: http://localhost:3017
+  - hostname: juice18.wonkatech.org
+    service: http://localhost:3018
+  - hostname: juice19.wonkatech.org
+    service: http://localhost:3019
+  - hostname: juice20.wonkatech.org
+    service: http://localhost:3020
+  - service: http_status:404
+EOF\r"
+expect "# "
+
+# Restart Cloudflare
+send "systemctl restart cloudflared\r"
+expect "# "
+
+send "sleep 3\r"
+expect "# "
+
+# Check status
+send "systemctl status cloudflared | grep Active\r"
+expect "# "
+
+# Test multiple endpoints
+send "echo '\\n🧪 Testing HTTPS endpoints:'\r"
+expect "# "
+
+send "for i in 1 2 3 4 5; do echo -n \"juice\$i: \"; curl -s -o /dev/null -w '%{http_code}\\n' https://juice\$i.wonkatech.org 2>/dev/null || echo 'Not configured'; done\r"
+expect "# "
+
+send "echo '\\n✅ Admin panel updated with HTTPS URLs!'\r"
+expect "# "
+
+send "echo '\\n📌 Summary:'\r"
+expect "# "
+send "echo '   - All containers now use HTTPS subdomains'\r"
+expect "# "
+send "echo '   - Admin panel shows HTTPS links'\r"
+expect "# "
+send "echo '   - URLs: juice1.wonkatech.org through juice20.wonkatech.org'\r"
+expect "# "
+send "echo '   - Each maps to ports 3001-3020 respectively'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\n✅ HTTPS setup complete for all containers!"

@@ -1,0 +1,140 @@
+#!/usr/bin/expect -f
+
+set timeout 180
+set password {$$R00tbeer02}
+
+# SSH and create custom About content solution
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "echo 'Creating custom About Us content solution...'\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+
+# Create directory for custom content
+send "mkdir -p /root/juice-custom-content\r"
+expect "# "
+send "cd /root/juice-custom-content\r"
+expect "# "
+
+# Clone Juice Shop to get source files
+send "echo 'Cloning Juice Shop for source files...'\r"
+expect "# "
+send "if \[ ! -d 'juice-shop' \]; then\r"
+send "  git clone --depth 1 https://github.com/juice-shop/juice-shop.git\r"
+send "fi\r"
+expect "# "
+
+send "cd juice-shop\r"
+expect "# "
+
+# Install Node.js if not present
+send "which node || (curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && apt-get install -y nodejs)\r"
+expect "# "
+
+# Modify the About component source
+send "echo 'Modifying About component...'\r"
+expect "# "
+send "cat > frontend/src/app/about/about.component.html << 'ABOUT_EOF'\r"
+send "<mat-card>\r"
+send "  <h1>About Us</h1>\r"
+send "  <div class=\"about-content\">\r"
+send "    <h2>Corporate History & Policy</h2>\r"
+send "    <p>Founded in 2014, OWASP Juice Shop started as a small family-owned business with a simple mission: to deliver fresh, organic juices directly to your doorstep. What began in a small kitchen has grown into a leading online juice retailer, serving thousands of satisfied customers worldwide.</p>\r"
+send "    \r"
+send "    <p>Our journey started when our founder, Bjoern Kimminich, realized there was a gap in the market for truly fresh, preservative-free juices that could be ordered online. With a background in nutrition and a passion for healthy living, he set out to revolutionize how people purchase and consume fresh juices.</p>\r"
+send "    \r"
+send "    <h3>Our Commitment to Quality</h3>\r"
+send "    <p>At OWASP Juice Shop, we pride ourselves on our commitment to quality and sustainability. Every juice is made from locally-sourced, organic fruits and vegetables, cold-pressed within 24 hours of delivery to ensure maximum nutritional value. Our state-of-the-art facility maintains the highest standards of food safety and hygiene, with regular third-party audits to ensure compliance.</p>\r"
+send "    \r"
+send "    <h3>Our Philosophy</h3>\r"
+send "    <p>Our corporate philosophy is built on three pillars: <strong>Freshness, Transparency, and Innovation</strong>. We believe in being transparent about our ingredients, our processes, and our pricing. That's why you'll find detailed nutritional information and sourcing details for every product on our platform. Check out our <a routerLink=\"/ftp/legal.md\" \[queryParams\]=\"{'md_debug': true}\">boring terms of use</a> if you are interested in such lame stuff. We're constantly innovating, from our biodegradable packaging to our carbon-neutral delivery fleet.</p>\r"
+send "    \r"
+send "    <h3>Community Impact</h3>\r"
+send "    <p>As we've grown, we've maintained our commitment to giving back to the community. Through our \"Juice for All\" program, we donate 1% of all sales to local food banks and nutrition education programs. We also partner with local farms to reduce food waste by purchasing \"imperfect\" produce that would otherwise go unsold.</p>\r"
+send "    \r"
+send "    <h3>Looking Forward</h3>\r"
+send "    <p>We're excited about expanding our product line to include smoothie bowls, wellness shots, and seasonal specials. We're also investing in blockchain technology to provide complete transparency in our supply chain, allowing customers to trace their juice from farm to doorstep.</p>\r"
+send "    \r"
+send "    <p>Thank you for choosing OWASP Juice Shop. Whether you're a health enthusiast, a busy professional, or just someone who loves great-tasting juice, we're honored to be part of your wellness journey.</p>\r"
+send "    \r"
+send "    <h2>Customer Feedback</h2>\r"
+send "    <p>Your feedback drives our innovation. We actively listen to our customers and continuously improve our products and services based on your suggestions. Feel free to leave a review or contact our customer service team - we read every message and take your input seriously!</p>\r"
+send "  </div>\r"
+send "</mat-card>\r"
+send "ABOUT_EOF\r"
+expect "# "
+
+# Install dependencies and build
+send "echo 'Installing dependencies...'\r"
+expect "# "
+send "npm install --legacy-peer-deps 2>&1 | tail -20\r"
+expect "# "
+
+send "echo 'Building frontend...'\r"
+expect "# "
+send "npm run build:frontend 2>&1 | tail -20\r"
+expect "# "
+
+# Build the full application
+send "echo 'Building complete application...'\r"
+expect "# "
+send "npm run build 2>&1 | tail -20\r"
+expect "# "
+
+# Create custom Docker image
+send "echo 'Creating custom Docker image...'\r"
+expect "# "
+send "cat > Dockerfile << 'DOCKER_EOF'\r"
+send "FROM node:18-slim\r"
+send "RUN apt-get update && apt-get install -y --no-install-recommends dumb-init && rm -rf /var/lib/apt/lists/*\r"
+send "WORKDIR /juice-shop\r"
+send "COPY . .\r"
+send "EXPOSE 3000\r"
+send "ENTRYPOINT \[\"dumb-init\", \"--\"\]\r"
+send "CMD \[\"npm\", \"start\"\]\r"
+send "DOCKER_EOF\r"
+expect "# "
+
+send "docker build -t juice-shop-custom:latest .\r"
+expect "# "
+
+# Stop existing containers
+send "echo 'Stopping existing containers...'\r"
+expect "# "
+send "docker stop juice-user1 juice-user2 juice-user3 juice-user4 juice-user5 2>/dev/null || true\r"
+expect "# "
+send "docker rm juice-user1 juice-user2 juice-user3 juice-user4 juice-user5 2>/dev/null || true\r"
+expect "# "
+
+# Start new containers with custom image
+send "echo 'Starting containers with custom Juice Shop...'\r"
+expect "# "
+send "for i in 1 2 3 4 5; do\r"
+send "  echo \"Starting juice-user\$i on port \$((3000+i))...\"\r"
+send "  docker run -d --name juice-user\$i -p \$((3000+i)):3000 \\\r"
+send "    -e NODE_ENV=ctf \\\r"
+send "    --restart unless-stopped \\\r"
+send "    juice-shop-custom:latest\r"
+send "done\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo 'Custom Juice Shop deployed successfully!'\r"
+expect "# "
+send "echo 'The About Us page now has meaningful content while preserving CTF functionality.'\r"
+expect "# "
+send "echo 'All containers running with custom content:'\r"
+expect "# "
+send "docker ps | grep juice\r"
+expect "# "
+
+send "exit\r"
+expect eof

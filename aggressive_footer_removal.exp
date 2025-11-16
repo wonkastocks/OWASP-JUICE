@@ -1,0 +1,47 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect "# "
+
+# First, let's see what's in the file
+send "grep -n 'Shop\\|About\\|Customer Care\\|©\\|Wally' /var/www/html/login.php | head -20\r"
+expect "# "
+
+# More aggressive removal - delete from first occurrence of Shop section
+send "sed -i '/🛍️ Shop/,\$d' /var/www/html/login.php\r"
+expect "# "
+
+# If that didn't work, try with h4 tags
+send "sed -i '/<h4>.*Shop.*<\\/h4>/,\$d' /var/www/html/login.php\r"
+expect "# "
+
+# Add proper closing tags
+send "echo '</div></div></body></html>' >> /var/www/html/login.php\r"
+expect "# "
+
+# Restart Apache
+send "systemctl restart apache2\r"
+expect "# "
+
+send "echo 'Aggressive footer removal complete!'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\nFooter removal complete!"

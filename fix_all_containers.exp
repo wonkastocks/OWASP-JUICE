@@ -1,0 +1,62 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+
+# Try different connection methods
+spawn ssh root@155.138.197.128
+
+expect {
+    "Connection refused" {
+        puts "SSH port 22 is closed, trying port 2222..."
+        spawn ssh -p 2222 root@155.138.197.128
+    }
+    "password:" {
+        send "Ocean4Waves\r"
+    }
+    "Are you sure you want to continue connecting" {
+        send "yes\r"
+        expect "password:"
+        send "Ocean4Waves\r"
+    }
+    timeout {
+        puts "Connection timeout, trying with sshpass..."
+        spawn sshpass -p "Ocean4Waves" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 root@155.138.197.128
+    }
+}
+
+expect {
+    "root@*" {
+        puts "Connected successfully!"
+    }
+    "Permission denied" {
+        puts "Trying with escaped password..."
+        send "\$Ocean4Waves#\r"
+        expect "root@*"
+    }
+    timeout {
+        puts "Failed to connect via SSH"
+        exit 1
+    }
+}
+
+# Now restart the containers
+send "echo '=== Restarting stopped containers ==='\r"
+expect "root@*"
+
+send "for i in {4..13}; do echo \"Starting juice\$i...\"; docker start juice\$i 2>&1; sleep 1; done\r"
+expect "root@*"
+
+send "echo '=== Checking container status ==='\r"
+expect "root@*"
+
+send "docker ps | grep juice | wc -l\r"
+expect "root@*"
+
+send "echo '=== Verifying containers are running ==='\r"
+expect "root@*"
+
+send "docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' | grep juice\r"
+expect "root@*"
+
+send "exit\r"
+expect eof

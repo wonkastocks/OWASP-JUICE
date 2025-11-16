@@ -1,0 +1,49 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+# Copy the test email script
+spawn scp /tmp/test_email.php root@155.138.197.128:/var/www/ctf-platform/
+expect {
+    "password:" {
+        send "$password\r"
+        expect "100%"
+    }
+}
+
+# Now SSH and run it
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "cd /var/www/ctf-platform/\r"
+expect "# "
+
+# Run the test email script
+send "php test_email.php\r"
+expect "# "
+
+# Clean up
+send "rm test_email.php\r"
+expect "# "
+
+# Check if sendmail is running
+send "systemctl status sendmail | grep Active\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo 'Email sent to wonkastocks@gmail.com!'\r"
+expect "# "
+send "echo 'Please check your inbox and spam folder.'\r"
+expect "# "
+send "echo 'The email should arrive within a few minutes.'\r"
+expect "# "
+
+send "exit\r"
+expect eof

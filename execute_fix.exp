@@ -1,0 +1,26 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+# Copy fix script
+spawn scp /tmp/fix_docker_network.sh root@155.138.197.128:/tmp/fix_docker_network.sh
+expect {
+    "(yes/no)?" {
+        send "yes\r"
+        exp_continue
+    }
+    "password:" {
+        send "$password\r"
+    }
+}
+expect eof
+
+# Execute fix
+spawn ssh root@155.138.197.128 "chmod +x /tmp/fix_docker_network.sh && /tmp/fix_docker_network.sh"
+expect {
+    "password:" {
+        send "$password\r"
+    }
+}
+expect eof

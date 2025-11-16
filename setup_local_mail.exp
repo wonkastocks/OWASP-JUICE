@@ -1,0 +1,115 @@
+#!/usr/bin/expect -f
+
+set timeout 300
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+# Install postfix for local mail delivery
+send "echo 'Setting up local mail delivery system...'\r"
+expect "# "
+
+# Remove ssmtp and reinstall postfix for local delivery
+send "apt-get remove -y ssmtp\r"
+expect "# "
+
+send "DEBIAN_FRONTEND=noninteractive apt-get install -y postfix\r"
+expect "# "
+
+# Configure postfix for local delivery only
+send "cat > /etc/postfix/main.cf << 'EOF'\r"
+send "# Local mail delivery only\r"
+send "myhostname = wonkatech.org\r"
+send "mydomain = wonkatech.org\r"
+send "myorigin = \\\$mydomain\r"
+send "inet_interfaces = loopback-only\r"
+send "mydestination = \\\$myhostname, localhost.\\\$mydomain, localhost, \\\$mydomain\r"
+send "mynetworks = 127.0.0.0/8\r"
+send "home_mailbox = Maildir/\r"
+send "mailbox_command =\r"
+send "smtp_generic_maps = hash:/etc/postfix/generic\r"
+send "EOF\r"
+expect "# "
+
+# Create generic maps to rewrite addresses
+send "cat > /etc/postfix/generic << 'EOF'\r"
+send "root@wonkatech.org noreply@wonkatech.org\r"
+send "www-data@wonkatech.org noreply@wonkatech.org\r"
+send "EOF\r"
+expect "# "
+
+send "postmap /etc/postfix/generic\r"
+expect "# "
+
+# Restart postfix
+send "systemctl restart postfix\r"
+expect "# "
+
+# Create a local mailbox for testing
+send "useradd -m -s /bin/bash mailtest 2>/dev/null || true\r"
+expect "# "
+
+# Update PHP to use postfix
+send "sed -i 's|sendmail_path.*|sendmail_path = /usr/sbin/sendmail -t -i|' /etc/php/8.1/apache2/php.ini\r"
+expect "# "
+
+send "systemctl restart apache2\r"
+expect "# "
+
+# Create a mail capture script
+send "cat > /usr/local/bin/capture_mail.php << 'PHPCAPTURE'\r"
+send "#!/usr/bin/php\r"
+send "<?php\r"
+send "// Capture emails to a log file for testing\r"
+send "\\$input = file_get_contents('php://stdin');\r"
+send "\\$logfile = '/var/log/captured_emails.log';\r"
+send "\\$timestamp = date('Y-m-d H:i:s');\r"
+send "\\$separator = \"\\n========== Email captured at \\$timestamp ==========\\n\";\r"
+send "file_put_contents(\\$logfile, \\$separator . \\$input . \"\\n\", FILE_APPEND);\r"
+send "echo \\$input;\r"
+send "?>\r"
+send "PHPCAPTURE\r"
+expect "# "
+
+send "chmod +x /usr/local/bin/capture_mail.php\r"
+expect "# "
+
+send "touch /var/log/captured_emails.log\r"
+expect "# "
+send "chmod 666 /var/log/captured_emails.log\r"
+expect "# "
+
+# Update aliases to capture emails
+send "cat >> /etc/aliases << 'EOF'\r"
+send "wonkastocks: |/usr/local/bin/capture_mail.php\r"
+send "EOF\r"
+expect "# "
+
+send "newaliases\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo '============================================'\r"
+expect "# "
+send "echo 'Local mail system configured!'\r"
+expect "# "
+send "echo '============================================'\r"
+expect "# "
+send "echo 'Emails will be delivered locally.'\r"
+expect "# "
+send "echo 'Test emails to wonkastocks@gmail.com will be'\r"
+expect "# "
+send "echo 'captured in /var/log/captured_emails.log'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+
+send "exit\r"
+expect eof

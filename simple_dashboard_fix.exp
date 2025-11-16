@@ -1,0 +1,63 @@
+#!/usr/bin/expect -f
+
+set timeout 60
+set password {$$R00tbeer02}
+
+puts "🔧 Fixing dashboard to use HTTPS URLs..."
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" { send "$password\r" }
+}
+expect "# "
+
+# Backup and fix dashboard.php
+send "cp /var/www/ctf-platform/dashboard.php /var/www/ctf-platform/dashboard.php.backup\r"
+expect "# "
+
+# Replace IP:port URLs with HTTPS URLs in dashboard.php
+send "sed -i 's|http://155.138.197.128:3001|https://juice1.wonkatech.org|g' /var/www/ctf-platform/dashboard.php\r"
+expect "# "
+send "sed -i 's|http://155.138.197.128:3002|https://juice2.wonkatech.org|g' /var/www/ctf-platform/dashboard.php\r"
+expect "# "
+send "sed -i 's|http://155.138.197.128:3003|https://juice3.wonkatech.org|g' /var/www/ctf-platform/dashboard.php\r"
+expect "# "
+send "sed -i 's|http://155.138.197.128:3004|https://juice4.wonkatech.org|g' /var/www/ctf-platform/dashboard.php\r"
+expect "# "
+send "sed -i 's|http://155.138.197.128:3005|https://juice5.wonkatech.org|g' /var/www/ctf-platform/dashboard.php\r"
+expect "# "
+
+# Also fix any remaining port references with a pattern
+send "sed -i 's|155.138.197.128:30|juice|g' /var/www/ctf-platform/dashboard.php\r"
+expect "# "
+
+# Check what's in dashboard.php
+send "grep -n 'instance_url\\|container\\|3001\\|3002\\|3003' /var/www/ctf-platform/dashboard.php | head -20\r"
+expect "# "
+
+# Fix login.php too
+send "cp /var/www/ctf-platform/login.php /var/www/ctf-platform/login.php.backup\r"
+expect "# "
+
+send "sed -i 's|http://155.138.197.128:3001|https://juice1.wonkatech.org|g' /var/www/ctf-platform/login.php\r"
+expect "# "
+send "sed -i 's|http://155.138.197.128:3002|https://juice2.wonkatech.org|g' /var/www/ctf-platform/login.php\r"
+expect "# "
+send "sed -i 's|http://155.138.197.128:3003|https://juice3.wonkatech.org|g' /var/www/ctf-platform/login.php\r"
+expect "# "
+send "sed -i 's|http://155.138.197.128:3004|https://juice4.wonkatech.org|g' /var/www/ctf-platform/login.php\r"
+expect "# "
+send "sed -i 's|http://155.138.197.128:3005|https://juice5.wonkatech.org|g' /var/www/ctf-platform/login.php\r"
+expect "# "
+
+# Look for where the instance URL is being set
+send "grep -r 'instance_url' /var/www/ctf-platform/ 2>/dev/null | head -10\r"
+expect "# "
+
+send "echo '\\n✅ Dashboard fixed!'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\n✅ Dashboard URLs updated to HTTPS!"

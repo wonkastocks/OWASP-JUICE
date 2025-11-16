@@ -1,0 +1,121 @@
+#!/usr/bin/expect -f
+
+set timeout 60
+set password {$$R00tbeer02}
+
+puts "🔧 Fixing instance URL generation to use HTTPS..."
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" { send "$password\r" }
+}
+expect "# "
+
+# Fix the dashboard.php to generate HTTPS URLs
+send "cat > /tmp/dashboard_fix.php << 'EOFPHP'
+<?php
+// Dashboard fix - replace instance URL generation
+\$search = <<<'EOT'
+    \$instanceUrl = \"http://155.138.197.128:\$port\";
+EOT;
+
+\$replace = <<<'EOT'
+    \$instanceNum = \$port - 3000;
+    \$instanceUrl = \"https://juice{\$instanceNum}.wonkatech.org\";
+EOT;
+
+\$content = file_get_contents('/var/www/ctf-platform/dashboard.php');
+\$content = str_replace(\$search, \$replace, \$content);
+
+// Also fix any other IP:port references
+\$content = preg_replace(
+    '/http:\/\/155\\.138\\.197\\.128:(30\\d{2})/',
+    'https://juice\$1.wonkatech.org',
+    \$content
+);
+
+file_put_contents('/var/www/ctf-platform/dashboard.php', \$content);
+echo \"Dashboard fixed\\n\";
+?>
+EOFPHP\r"
+expect "# "
+
+send "php /tmp/dashboard_fix.php\r"
+expect "# "
+
+# Fix functions.php in admin
+send "sed -i \"s|JUICE_BASE_URL . ':\\\$port'|'https://juice' . (\\\$port - 3000) . '.wonkatech.org'|g\" /var/www/ctf-platform/admin/functions.php 2>/dev/null\r"
+expect "# "
+
+# Update dashboard.php directly for the instance URL generation
+send "sed -i \"s|\\\$instanceUrl = \\\"http://155.138.197.128:\\\$port\\\";|\\\$instanceNum = \\\$port - 3000; \\\$instanceUrl = \\\"https://juice{\\\$instanceNum}.wonkatech.org\\\";|g\" /var/www/ctf-platform/dashboard.php\r"
+expect "# "
+
+# Check current instance URLs in database
+send "mysql -u root ctf_platform -e \"SELECT id, username, instance_url FROM users WHERE instance_url IS NOT NULL LIMIT 5;\"\r"
+expect "# "
+
+# Update existing instance URLs in database to HTTPS
+send "mysql -u root ctf_platform << 'EOFSQL'
+-- Update existing instance URLs to HTTPS format
+UPDATE users 
+SET instance_url = CONCAT('https://juice', 
+    CAST(SUBSTRING(instance_url, -4) - 3000 AS CHAR), 
+    '.wonkatech.org')
+WHERE instance_url LIKE 'http://155.138.197.128:30%';
+
+-- Show updated URLs
+SELECT id, username, instance_url FROM users WHERE instance_url IS NOT NULL LIMIT 5;
+EOFSQL\r"
+expect "# "
+
+# Create a helper script to fix URLs
+send "cat > /var/www/ctf-platform/fix_urls.php << 'EOFHELPER'
+<?php
+// Helper to convert port to HTTPS URL
+function getHTTPSUrl(\$port) {
+    if (\$port >= 3001 && \$port <= 3020) {
+        \$instanceNum = \$port - 3000;
+        return \"https://juice{\$instanceNum}.wonkatech.org\";
+    }
+    return null;
+}
+
+// Auto-fix any page that includes this file
+if (isset(\$_SESSION\['instance_url'\]) && strpos(\$_SESSION\['instance_url'\], '155.138.197.128') !== false) {
+    preg_match('/:(\\d+)/', \$_SESSION\['instance_url'\], \$matches);
+    if (isset(\$matches\[1\])) {
+        \$port = intval(\$matches\[1\]);
+        \$_SESSION\['instance_url'\] = getHTTPSUrl(\$port);
+    }
+}
+?>
+EOFHELPER\r"
+expect "# "
+
+send "chown www-data:www-data /var/www/ctf-platform/*.php\r"
+expect "# "
+
+# Test the dashboard
+send "echo '\\n🧪 Testing dashboard...'\r"
+expect "# "
+
+send "grep 'juice.*wonkatech.org' /var/www/ctf-platform/dashboard.php | head -5\r"
+expect "# "
+
+send "echo '\\n✅ Instance URL generation fixed!'\r"
+expect "# "
+
+send "echo '\\n📌 Users will now get HTTPS URLs like:'\r"
+expect "# "
+send "echo '   https://juice1.wonkatech.org'\r"
+expect "# "
+send "echo '   https://juice2.wonkatech.org'\r"
+expect "# "
+send "echo '   etc.'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\n✅ Instance URL generation fixed to use HTTPS!"

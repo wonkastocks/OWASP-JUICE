@@ -1,0 +1,71 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+
+# Connect to server
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "\$\$R00tbeer02\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "\$\$R00tbeer02\r"
+    }
+}
+
+expect "root@*"
+
+# Check container status
+send "echo '=== Checking juice5 container status ==='\r"
+expect "root@*"
+
+send "docker ps -a | grep juice5\r"
+expect "root@*"
+
+# Check database for user assignments
+send "echo '=== Checking database for juice5 assignment ==='\r"
+expect "root@*"
+
+send "mysql -u root -pWonkaChocolate2024! ctf_platform -e \"SELECT id, username, email, instance_url, last_activity FROM users WHERE instance_url LIKE '%juice5%';\"\r"
+expect "root@*"
+
+# Check if there's activity tracking
+send "echo '=== Checking user_sessions table ==='\r"
+expect "root@*"
+
+send "mysql -u root -pWonkaChocolate2024! ctf_platform -e \"SELECT * FROM user_sessions WHERE container_name = 'juice5' ORDER BY last_activity DESC LIMIT 5;\"\r"
+expect "root@*"
+
+# Check Apache logs for juice5 access
+send "echo '=== Recent juice5 access logs ==='\r"
+expect "root@*"
+
+send "tail -20 /var/log/apache2/access.log | grep juice5\r"
+expect "root@*"
+
+# Check Cloudflare tunnel logs
+send "echo '=== Cloudflare tunnel status for juice5 ==='\r"
+expect "root@*"
+
+send "grep juice5 /root/.cloudflared/config.yml\r"
+expect "root@*"
+
+# Check if juice5 is proxied correctly
+send "echo '=== Testing juice5 connectivity ==='\r"
+expect "root@*"
+
+send "curl -I https://juice5.wonkatech.org 2>/dev/null | head -5\r"
+expect "root@*"
+
+# Get current container assignments
+send "echo '=== All container assignments ==='\r"
+expect "root@*"
+
+send "mysql -u root -pWonkaChocolate2024! ctf_platform -e \"SELECT username, instance_url FROM users WHERE instance_url IS NOT NULL ORDER BY instance_url;\"\r"
+expect "root@*"
+
+send "exit\r"
+expect eof

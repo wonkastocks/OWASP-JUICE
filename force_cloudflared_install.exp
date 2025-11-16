@@ -1,0 +1,43 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+# Kill the blocking apt process
+send "kill -9 1215797 2>/dev/null\r"
+expect "# "
+
+# Clean up locks
+send "rm -f /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/cache/apt/archives/lock\r"
+expect "# "
+
+send "dpkg --configure -a\r"
+expect "# "
+
+# Install cloudflared via direct binary instead
+send "echo 'Installing cloudflared via direct binary...'\r"
+expect "# "
+
+send "curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /usr/local/bin/cloudflared\r"
+expect "# "
+
+send "chmod +x /usr/local/bin/cloudflared\r"
+expect "# "
+
+# Verify installation
+send "cloudflared version\r"
+expect "# "
+
+send "echo 'Installation complete!'\r"
+expect "# "
+
+send "exit\r"
+expect eof

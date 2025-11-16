@@ -1,0 +1,138 @@
+#!/usr/bin/expect -f
+
+set timeout 300
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+# Install sendmail
+send "echo 'Installing sendmail...'\r"
+expect "# "
+send "apt-get update\r"
+expect "# "
+send "DEBIAN_FRONTEND=noninteractive apt-get install -y sendmail sendmail-cf m4\r"
+expect "# "
+
+# Configure hostname properly
+send "hostname wonkatech.org\r"
+expect "# "
+send "echo 'wonkatech.org' > /etc/hostname\r"
+expect "# "
+
+# Add to hosts file
+send "echo '127.0.0.1 localhost wonkatech.org' > /etc/hosts\r"
+expect "# "
+send "echo '155.138.197.128 wonkatech.org' >> /etc/hosts\r"
+expect "# "
+
+# Configure sendmail
+send "cd /etc/mail\r"
+expect "# "
+
+# Update sendmail configuration
+send "echo 'FEATURE(relay_hosts_only)dnl' >> sendmail.mc\r"
+expect "# "
+send "echo 'FEATURE(relay_entire_domain)dnl' >> sendmail.mc\r"
+expect "# "
+
+# Rebuild sendmail configuration
+send "m4 sendmail.mc > sendmail.cf\r"
+expect "# "
+
+# Start sendmail
+send "systemctl enable sendmail\r"
+expect "# "
+send "systemctl restart sendmail\r"
+expect "# "
+
+# Configure PHP to use sendmail
+send "sed -i 's/;sendmail_path =/sendmail_path = \\/usr\\/sbin\\/sendmail -t -i/' /etc/php/8.1/apache2/php.ini\r"
+expect "# "
+
+# Now update register.php to actually send emails
+send "cd /var/www/ctf-platform/\r"
+expect "# "
+
+# Create a PHP script to update register.php with email functionality
+send "cat > add_email.php << 'PHPEND'\r"
+send "<?php\r"
+send "// Read register.php\r"
+send "\\$content = file_get_contents('register.php');\r"
+send "\r"
+send "// Find where to add email code (after success message)\r"
+send "\\$search = '\\$success = \"Registration successful! Please check your email to verify your account.\";';\r"
+send "\r"
+send "// Add email sending code\r"
+send "\\$emailCode = '\\$success = \"Registration successful! Please check your email to verify your account.\";\r"
+send "                    \r"
+send "                    // Send verification email\r"
+send "                    \\$to = \\$email;\r"
+send "                    \\$subject = \"WonkaTech CTF - Email Verification\";\r"
+send "                    \\$verificationLink = BASE_URL . \"/verify.php?token=\" . \\$verificationToken;\r"
+send "                    \r"
+send "                    \\$message = \"Hello \" . \\$username . \",\\n\\n\";\r"
+send "                    \\$message .= \"Welcome to WonkaTech CTF Platform!\\n\\n\";\r"
+send "                    \\$message .= \"Please click the link below to verify your email:\\n\\n\";\r"
+send "                    \\$message .= \\$verificationLink . \"\\n\\n\";\r"
+send "                    \\$message .= \"If you did not register, please ignore this email.\\n\\n\";\r"
+send "                    \\$message .= \"Best regards,\\n\";\r"
+send "                    \\$message .= \"WonkaTech CTF Team\";\r"
+send "                    \r"
+send "                    \\$headers = \"From: noreply@wonkatech.org\\r\\n\";\r"
+send "                    \\$headers .= \"Reply-To: noreply@wonkatech.org\\r\\n\";\r"
+send "                    \\$headers .= \"X-Mailer: PHP/\" . phpversion();\r"
+send "                    \r"
+send "                    // Send the email\r"
+send "                    if (!@mail(\\$to, \\$subject, \\$message, \\$headers)) {\r"
+send "                        error_log(\"Failed to send email to: \" . \\$email);\r"
+send "                    }';\r"
+send "\r"
+send "// Replace in file\r"
+send "\\$content = str_replace(\\$search, \\$emailCode, \\$content);\r"
+send "\r"
+send "// Save the file\r"
+send "file_put_contents('register.php', \\$content);\r"
+send "echo \"register.php updated with email functionality\\n\";\r"
+send "?>\r"
+send "PHPEND\r"
+expect "# "
+
+# Run the PHP script
+send "php add_email.php\r"
+expect "# "
+
+# Clean up
+send "rm add_email.php\r"
+expect "# "
+
+# Restart Apache to apply PHP changes
+send "systemctl restart apache2\r"
+expect "# "
+
+# Test sendmail
+send "echo 'Testing sendmail...'\r"
+expect "# "
+send "echo 'Test email from WonkaTech' | mail -s 'Test' root@localhost\r"
+expect "# "
+
+# Check mail queue
+send "mailq\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo 'Sendmail setup complete!'\r"
+expect "# "
+send "echo 'Emails will now be sent when users register.'\r"
+expect "# "
+send "echo 'Note: Emails may go to spam folder.'\r"
+expect "# "
+
+send "exit\r"
+expect eof

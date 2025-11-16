@@ -1,0 +1,59 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "cd /var/www/ctf-platform/\r"
+expect "# "
+
+# Create a PHP script to fix the login.php
+send "cat > fix_login.php << 'PHPEND'\r"
+send "<?php\r"
+send "// Read login.php\r"
+send "\\\$content = file_get_contents('login.php');\r"
+send "\r"
+send "// Replace the first error message (without link) with one that has the resend link\r"
+send "\\\$search = '\\\$error = \"Please verify your email before logging in.\";';\r"
+send "\\\$replace = '\\\$error = \"Please verify your email before logging in. <a href=\\\\\"resend_verification.php\\\\\" style=\\\\\"color: #667eea; text-decoration: underline;\\\\\">Click here to resend verification email</a>\";';\r"
+send "\r"
+send "// Replace in file\r"
+send "\\\$content = str_replace(\\\$search, \\\$replace, \\\$content);\r"
+send "\r"
+send "// Save\r"
+send "file_put_contents('login.php', \\\$content);\r"
+send "echo \"Fixed login.php - resend link now appears for unverified users\\n\";\r"
+send "?>\r"
+send "PHPEND\r"
+expect "# "
+
+# Run the PHP script
+send "php fix_login.php\r"
+expect "# "
+
+# Clean up
+send "rm fix_login.php\r"
+expect "# "
+
+# Verify the change
+send "grep 'verify your email' login.php\r"
+expect "# "
+
+# Restart Apache
+send "systemctl restart apache2\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo 'Login page fixed! Resend link now shows for unverified users.'\r"
+expect "# "
+
+send "exit\r"
+expect eof

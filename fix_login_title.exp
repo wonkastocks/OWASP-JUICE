@@ -1,0 +1,47 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect "# "
+
+# Find and replace the monkey emoji and Login Demo text
+send "sed -i 's/🐵 Login Demo/Login/g' /var/www/html/login.php\r"
+expect "# "
+
+# Remove any remaining "Login Demo" text
+send "sed -i 's/Login Demo/Login/g' /var/www/html/login.php\r"
+expect "# "
+
+# Remove SQL Injection Educational Lab text
+send "sed -i '/SQL Injection Educational Lab/d' /var/www/html/login.php\r"
+expect "# "
+
+# Update the title tag if present
+send "sed -i 's/<title>.*Login Demo.*<\\/title>/<title>Login - Wally\\'s Monkey Parts<\\/title>/g' /var/www/html/login.php\r"
+expect "# "
+
+# Restart Apache
+send "systemctl restart apache2\r"
+expect "# "
+
+send "echo 'Title fixed!'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\nLogin title updated!"

@@ -1,0 +1,33 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        # Try with double dollar sign
+        send "$$R00tbeer02\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$$R00tbeer02\r"
+    }
+}
+
+expect {
+    "# " {
+        puts "\nLogin successful!"
+        send "echo 'Connected!'\r"
+        expect "# "
+        send "exit\r"
+        expect eof
+    }
+    "Permission denied" {
+        puts "\nLogin failed"
+    }
+    timeout {
+        puts "\nTimeout"
+    }
+}

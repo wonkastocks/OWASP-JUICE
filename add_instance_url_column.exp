@@ -1,0 +1,46 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+# SSH and add the column directly
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "echo 'Adding instance_url column to database...'\r"
+expect "# "
+
+# Add the instance_url column directly
+send "mysql -u root ctf_platform -e 'ALTER TABLE users ADD COLUMN instance_url VARCHAR(255) DEFAULT NULL;' 2>&1\r"
+expect "# "
+
+# Check if it was added
+send "mysql -u root ctf_platform -e 'SHOW COLUMNS FROM users LIKE \"instance_url\";' 2>/dev/null\r"
+expect "# "
+
+# If column exists or was just added, populate it
+send "mysql -u root ctf_platform -e 'UPDATE users SET instance_url = CONCAT(\"http://155.138.197.128:\", 3000 + id) WHERE instance_url IS NULL;' 2>/dev/null\r"
+expect "# "
+
+# Verify the data
+send "echo ''\r"
+expect "# "
+send "echo 'Users with instance URLs:'\r"
+expect "# "
+send "mysql -u root ctf_platform -e 'SELECT id, username, instance_url FROM users;' 2>/dev/null\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo '✅ Instance URL column added and populated'\r"
+expect "# "
+send "echo 'Dashboard should now work at: https://wonkatech.org/dashboard.php'\r"
+expect "# "
+
+send "exit\r"
+expect eof

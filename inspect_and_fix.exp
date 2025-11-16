@@ -1,0 +1,72 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect "# "
+
+# First, let's see what we're dealing with
+send "grep -n 'demo-info' /var/www/html/login.php\r"
+expect "# "
+
+# Create a Python script to properly remove the nested div
+send "cat > /tmp/remove_hints.py << 'EOF'
+import re
+
+with open('/var/www/html/login.php', 'r') as f:
+    content = f.read()
+
+# Remove the entire demo-info div and all its contents
+# This handles nested divs properly
+pattern = r'<div class=\"demo-info\">.*?(?:<div.*?</div>.*?)*</div>'
+content = re.sub(pattern, '', content, flags=re.DOTALL)
+
+# Also remove any remaining hint text
+content = re.sub(r'SQL Injection Demo Lab', '', content)
+content = re.sub(r'Valid Test Account:', '', content)
+content = re.sub(r'admin@wallys\.com', '', content)
+content = re.sub(r'Password: 123456', '', content)
+content = re.sub(r'SQL Injection Tests:', '', content)
+content = re.sub(r'Database Dump:', '', content)
+content = re.sub(r'UNION SELECT.*?FROM users.*?--', '', content, flags=re.DOTALL)
+
+with open('/var/www/html/login.php', 'w') as f:
+    f.write(content)
+
+print('Hints removed!')
+EOF\r"
+expect "# "
+
+# Run the Python script
+send "python3 /tmp/remove_hints.py\r"
+expect "# "
+
+# Set permissions
+send "chown www-data:www-data /var/www/html/login.php\r"
+expect "# "
+
+# Restart services
+send "systemctl restart apache2\r"
+expect "# "
+
+# Verify
+send "grep -c 'demo-info' /var/www/html/login.php\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\nInspection and fix complete!"

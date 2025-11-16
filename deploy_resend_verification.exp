@@ -1,0 +1,60 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+# Copy the fixed resend verification page
+spawn scp /tmp/resend_verification_fixed.php root@155.138.197.128:/var/www/ctf-platform/resend_verification.php
+expect {
+    "password:" {
+        send "$password\r"
+        expect "100%"
+    }
+}
+
+# SSH to confirm
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "echo '================================================'\r"
+expect "# "
+send "echo 'RESEND VERIFICATION PAGE DEPLOYED!'\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo '✅ Fixed session_start() warning (removed duplicate)'\r"
+expect "# "
+send "echo '✅ Improved page styling with proper CTF branding'\r"
+expect "# "
+send "echo '✅ Added Juice Shop logo'\r"
+expect "# "
+send "echo '✅ Matching purple/blue gradient theme'\r"
+expect "# "
+send "echo '✅ Better error and success message styling'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'Features:'\r"
+expect "# "
+send "echo '• Auto-sends email when clicked from login page'\r"
+expect "# "
+send "echo '• Shows clear success/error messages'\r"
+expect "# "
+send "echo '• Generates new verification token each time'\r"
+expect "# "
+send "echo '• Emails include clickable verification link'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'Test it at: https://wonkatech.org/resend_verification.php'\r"
+expect "# "
+
+send "exit\r"
+expect eof

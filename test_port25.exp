@@ -1,0 +1,134 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "echo '================================================'\r"
+expect "# "
+send "echo 'TESTING PORT 25 CONNECTIVITY'\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+
+# Test 1: Check if port 25 is open locally
+send "echo 'Test 1: Checking if port 25 is listening locally...'\r"
+expect "# "
+send "netstat -tuln | grep :25\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+
+# Test 2: Try telnet to various SMTP servers
+send "echo 'Test 2: Testing connection to Gmail SMTP (port 25)...'\r"
+expect "# "
+send "timeout 5 telnet smtp.gmail.com 25 2>&1\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+
+send "echo 'Test 3: Testing connection to Outlook SMTP (port 25)...'\r"
+expect "# "
+send "timeout 5 telnet smtp-mail.outlook.com 25 2>&1\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+
+send "echo 'Test 4: Testing connection to Yahoo SMTP (port 25)...'\r"
+expect "# "
+send "timeout 5 telnet smtp.mail.yahoo.com 25 2>&1\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+
+# Test 3: Use nc (netcat) to test connectivity
+send "echo 'Test 5: Using netcat to test Gmail port 25...'\r"
+expect "# "
+send "nc -zv -w5 smtp.gmail.com 25 2>&1\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+
+# Test 4: Check with curl
+send "echo 'Test 6: Testing with curl to Gmail SMTP...'\r"
+expect "# "
+send "curl -v --connect-timeout 5 telnet://smtp.gmail.com:25 2>&1 | head -20\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+
+# Test 5: Check iptables rules
+send "echo 'Test 7: Checking firewall rules for port 25...'\r"
+expect "# "
+send "iptables -L -n | grep -E '25|smtp' || echo 'No specific port 25 rules in iptables'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+
+# Test 6: Try alternative ports that usually work
+send "echo 'Test 8: Testing Gmail on port 587 (usually open)...'\r"
+expect "# "
+send "timeout 5 telnet smtp.gmail.com 587 2>&1 | head -5\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+
+send "echo 'Test 9: Testing Gmail on port 465 (SSL, usually open)...'\r"
+expect "# "
+send "timeout 5 telnet smtp.gmail.com 465 2>&1 | head -5\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+
+# Test 7: Check with Python
+send "echo 'Test 10: Python socket test to Gmail port 25...'\r"
+expect "# "
+send "python3 -c \"import socket; s=socket.socket(); s.settimeout(5); result=s.connect_ex(('smtp.gmail.com',25)); print('Port 25 is', 'OPEN' if result==0 else 'BLOCKED/FILTERED (error code: {})'.format(result)); s.close()\" 2>&1\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+
+# Test 8: Check mail logs for connection attempts
+send "echo 'Test 11: Recent mail log errors showing connection issues...'\r"
+expect "# "
+send "grep -i 'connection timed out\\|network is unreachable\\|connection refused' /var/log/mail.log 2>/dev/null | tail -5\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+
+# Test 9: Traceroute to see where it stops
+send "echo 'Test 12: Traceroute to Gmail SMTP (first 10 hops)...'\r"
+expect "# "
+send "traceroute -n -T -p 25 -m 10 smtp.gmail.com 2>&1\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo 'TEST RESULTS ANALYSIS'\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'Based on the tests above, we can determine if:'\r"
+expect "# "
+send "echo '1. Port 25 is blocked at the provider level (Vultr)'\r"
+expect "# "
+send "echo '2. Port 587/465 work (alternative SMTP ports)'\r"
+expect "# "
+send "echo '3. The block is firewall-based or network-level'\r"
+expect "# "
+
+send "exit\r"
+expect eof

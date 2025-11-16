@@ -1,0 +1,41 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "echo 'Checking current login.php structure...'\r"
+expect "# "
+
+# Check if email_verified check exists in login.php
+send "grep -n 'email_verified' /var/www/ctf-platform/login.php\r"
+expect "# "
+
+# Look for the error handling section
+send "grep -n 'Please verify' /var/www/ctf-platform/login.php\r"
+expect "# "
+
+# Update just the error message line in login.php
+send "sed -i \"s|Please verify your email before logging in\\.|Please verify your email before logging in. <a href='resend_verification.php' style='color: #667eea; text-decoration: underline;'>Click here to resend verification email</a>|g\" /var/www/ctf-platform/login.php\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo '✅ Fixed: Login page now shows resend verification link'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+
+# Test that the change was applied
+send "grep 'resend verification' /var/www/ctf-platform/login.php\r"
+expect "# "
+
+send "exit\r"
+expect eof

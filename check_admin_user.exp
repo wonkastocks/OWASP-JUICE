@@ -1,0 +1,34 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+
+# Connect to server
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "\$\$R00tbeer02\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "\$\$R00tbeer02\r"
+    }
+}
+
+expect "root@*"
+
+# Check admin users in database
+send "mysql -u root ctf_db -e \"SELECT username, email, role, is_verified FROM users WHERE role='admin' OR username LIKE '%admin%';\"\r"
+expect "root@*"
+
+# Also check if there's an admin panel
+send "ls -la /var/www/html/admin*\r"
+expect "root@*"
+
+# Check for default credentials in config files
+send "cat /var/www/html/db_config.php | grep -i admin\r"
+expect "root@*"
+
+send "exit\r"
+expect eof

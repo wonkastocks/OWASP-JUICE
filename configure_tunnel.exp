@@ -1,0 +1,134 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+# Get the tunnel UUID
+send "cloudflared tunnel list\r"
+expect "# "
+
+# Create config directory if it doesn't exist
+send "mkdir -p ~/.cloudflared\r"
+expect "# "
+
+# Get tunnel UUID and create config
+send "TUNNEL_UUID=\$(cloudflared tunnel list | grep wonkatech-ctf | awk '{print \$1}')\r"
+expect "# "
+
+send "echo \"Tunnel UUID: \$TUNNEL_UUID\"\r"
+expect "# "
+
+# Create the configuration file
+send "cat > ~/.cloudflared/config.yml << 'EOF'\r"
+send "tunnel: wonkatech-ctf\r"
+send "credentials-file: /root/.cloudflared/\r"
+send "\r"
+send "ingress:\r"
+send "  # Main platform\r"
+send "  - hostname: wonkatech.org\r"
+send "    service: http://localhost:80\r"
+send "  - hostname: www.wonkatech.org\r"
+send "    service: http://localhost:80\r"
+send "    \r"
+send "  # Juice Shop instances using subdomains\r"
+send "  - hostname: instance1.wonkatech.org\r"
+send "    service: http://localhost:3001\r"
+send "  - hostname: instance2.wonkatech.org\r"
+send "    service: http://localhost:3002\r"
+send "  - hostname: instance3.wonkatech.org\r"
+send "    service: http://localhost:3003\r"
+send "  - hostname: instance4.wonkatech.org\r"
+send "    service: http://localhost:3004\r"
+send "  - hostname: instance5.wonkatech.org\r"
+send "    service: http://localhost:3005\r"
+send "  - hostname: instance6.wonkatech.org\r"
+send "    service: http://localhost:3006\r"
+send "  - hostname: instance7.wonkatech.org\r"
+send "    service: http://localhost:3007\r"
+send "  - hostname: instance8.wonkatech.org\r"
+send "    service: http://localhost:3008\r"
+send "  - hostname: instance9.wonkatech.org\r"
+send "    service: http://localhost:3009\r"
+send "  - hostname: instance10.wonkatech.org\r"
+send "    service: http://localhost:3010\r"
+send "  - hostname: instance11.wonkatech.org\r"
+send "    service: http://localhost:3011\r"
+send "  - hostname: instance12.wonkatech.org\r"
+send "    service: http://localhost:3012\r"
+send "  - hostname: instance13.wonkatech.org\r"
+send "    service: http://localhost:3013\r"
+send "  - hostname: instance14.wonkatech.org\r"
+send "    service: http://localhost:3014\r"
+send "  - hostname: instance15.wonkatech.org\r"
+send "    service: http://localhost:3015\r"
+send "  - hostname: instance16.wonkatech.org\r"
+send "    service: http://localhost:3016\r"
+send "  - hostname: instance17.wonkatech.org\r"
+send "    service: http://localhost:3017\r"
+send "  - hostname: instance18.wonkatech.org\r"
+send "    service: http://localhost:3018\r"
+send "  - hostname: instance19.wonkatech.org\r"
+send "    service: http://localhost:3019\r"
+send "  - hostname: instance20.wonkatech.org\r"
+send "    service: http://localhost:3020\r"
+send "    \r"
+send "  # Catch-all\r"
+send "  - service: http_status:404\r"
+send "EOF\r"
+expect "# "
+
+# Fix the credentials path in config
+send "TUNNEL_UUID=\$(cloudflared tunnel list | grep wonkatech-ctf | awk '{print \$1}')\r"
+expect "# "
+send "sed -i \"s|credentials-file: /root/.cloudflared/|credentials-file: /root/.cloudflared/\$TUNNEL_UUID.json|\" ~/.cloudflared/config.yml\r"
+expect "# "
+
+# Route DNS for the tunnel
+send "echo 'Setting up DNS routing...'\r"
+expect "# "
+send "cloudflared tunnel route dns wonkatech-ctf wonkatech.org\r"
+expect "# "
+send "cloudflared tunnel route dns wonkatech-ctf '*.wonkatech.org'\r"
+expect "# "
+
+# Install as a service
+send "cloudflared service install\r"
+expect "# "
+
+# Start the tunnel
+send "systemctl start cloudflared\r"
+expect "# "
+send "systemctl enable cloudflared\r"
+expect "# "
+
+# Check status
+send "systemctl status cloudflared | head -10\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo 'Tunnel configuration complete!'\r"
+expect "# "
+send "echo 'The tunnel is now running.'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'IMPORTANT: You need to update your Cloudflare DNS:'\r"
+expect "# "
+send "echo '1. Go to Cloudflare Dashboard > DNS'\r"
+expect "# "
+send "echo '2. Delete any existing A records for wonkatech.org'\r"
+expect "# "
+send "echo '3. You should see new CNAME records pointing to the tunnel'\r"
+expect "# "
+
+send "exit\r"
+expect eof

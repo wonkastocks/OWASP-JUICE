@@ -1,0 +1,56 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect "# "
+
+send "echo 'Swapping login pages...'\r"
+expect "# "
+
+# Create timestamped backup of current login.php
+send "cp /var/www/html/login.php /var/www/html/login.php.backup.`date +%Y%m%d_%H%M%S`\r"
+expect "# "
+
+# Copy logintest.php to login.php
+send "cp /var/www/html/logintest.php /var/www/html/login.php\r"
+expect "# "
+
+# Set proper permissions
+send "chown www-data:www-data /var/www/html/login.php\r"
+expect "# "
+
+send "chmod 644 /var/www/html/login.php\r"
+expect "# "
+
+# Restart services
+send "systemctl restart apache2\r"
+expect "# "
+
+send "systemctl restart php8.1-fpm\r"
+expect "# "
+
+send "echo 'Login pages swapped successfully!'\r"
+expect "# "
+
+# Test that the new login page works
+send "curl -s http://localhost/login.php | grep -o 'Wally.*Monkey.*Parts\\|Sign in to your account' | head -1\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\nLogin page swap complete!"

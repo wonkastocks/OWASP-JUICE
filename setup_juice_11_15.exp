@@ -1,0 +1,88 @@
+#!/usr/bin/expect -f
+
+set timeout 60
+
+# Connect to server
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "\$\$R00tbeer02\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "\$\$R00tbeer02\r"
+    }
+}
+
+expect "root@*"
+
+# Create containers juice11-15
+send "echo 'Creating containers juice11-15...'\r"
+expect "root@*"
+
+for {set i 11} {$i <= 15} {incr i} {
+    set port [expr 3000 + $i]
+    send "docker stop juice$i 2>/dev/null; docker rm juice$i 2>/dev/null\r"
+    expect "root@*"
+    send "docker run -d --name juice$i -p $port:3000 --restart unless-stopped bkimminich/juice-shop:latest\r"
+    expect "root@*"
+    send "echo 'Created juice$i on port $port'\r"
+    expect "root@*"
+}
+
+# Update Cloudflare config to include juice11-15
+send "cat > /root/.cloudflared/config.yml << 'EOF'\r"
+send "tunnel: wonkatech-ctf\r"
+send "credentials-file: /root/.cloudflared/3e6698e3-59fb-4bb4-aa52-7dde59039354.json\r"
+send "\r"
+send "ingress:\r"
+send "  - hostname: wonkatech.org\r"
+send "    service: http://localhost:80\r"
+send "  - hostname: www.wonkatech.org\r"
+send "    service: http://localhost:80\r"
+send "EOF\r"
+expect "root@*"
+
+# Add all juice instances 1-15
+for {set i 1} {$i <= 15} {incr i} {
+    set port [expr 3000 + $i]
+    send "cat >> /root/.cloudflared/config.yml << 'EOF'\r"
+    send "  - hostname: juice$i.wonkatech.org\r"
+    send "    service: http://localhost:$port\r"
+    send "EOF\r"
+    expect "root@*"
+}
+
+# Add catch-all
+send "cat >> /root/.cloudflared/config.yml << 'EOF'\r"
+send "  - service: http_status:404\r"
+send "EOF\r"
+expect "root@*"
+
+# Copy to /etc
+send "cp /root/.cloudflared/config.yml /etc/cloudflared/config.yml\r"
+expect "root@*"
+
+# Restart cloudflared
+send "systemctl restart cloudflared\r"
+expect "root@*"
+
+send "sleep 5\r"
+expect "root@*"
+
+# Check status
+send "systemctl status cloudflared --no-pager | grep Active\r"
+expect "root@*"
+
+# Verify all containers are running
+send "docker ps --format 'table {{.Names}}\t{{.Ports}}\t{{.Status}}' | grep juice | sort -V\r"
+expect "root@*"
+
+# Test local access to juice11-15
+send "for i in {11..15}; do echo -n \"juice\$i: \"; curl -s -o /dev/null -w \"%{http_code}\" http://localhost:30\$i; echo; done\r"
+expect "root@*"
+
+send "exit\r"
+expect eof

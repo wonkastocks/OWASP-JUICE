@@ -1,0 +1,37 @@
+#!/usr/bin/expect -f
+
+set timeout 60
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+# Manually fix the dashboard.php instance URL
+send "cd /var/www/ctf-platform/\r"
+expect "# "
+
+# Use a simpler sed command to fix the instance URL
+send "grep instanceUrl dashboard.php\r"
+expect "# "
+
+# Fix it with a direct edit
+send "sed -i \"s|wonkatech.org|155.138.197.128|g\" dashboard.php\r"
+expect "# "
+
+send "sed -i \"s|https://155.138.197.128|http://155.138.197.128|g\" dashboard.php\r"
+expect "# "
+
+# Verify the fix
+send "grep instanceUrl dashboard.php\r"
+expect "# "
+
+send "echo 'Dashboard instance URLs fixed!'\r"
+expect "# "
+
+send "exit\r"
+expect eof

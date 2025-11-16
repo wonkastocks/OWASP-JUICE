@@ -1,0 +1,32 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" { send "$password\r" }
+}
+expect "# "
+
+send "cat /etc/apache2/sites-enabled/000-default.conf | grep DocumentRoot\r"
+expect "# "
+
+send "ls -la /var/www/ctf-platform/\r"
+expect "# "
+
+send "cp -r /var/www/html/admin /var/www/ctf-platform/\r"
+expect "# "
+
+send "chown -R www-data:www-data /var/www/ctf-platform/admin\r"
+expect "# "
+
+send "ls -la /var/www/ctf-platform/admin/\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\n✅ Admin panel copied to correct directory!"
+puts "\n📌 Admin Panel Access:"
+puts "   URL: http://155.138.197.128/admin/admin_login.php"

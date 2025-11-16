@@ -1,0 +1,46 @@
+QUICK FIX FOR BAD GATEWAY ERROR
+================================
+
+SSH to your server:
+ssh root@155.138.197.128
+
+Then run these commands:
+
+1. Check Docker status:
+docker ps -a
+
+2. Restart the container:
+docker restart juice-shop
+OR
+docker restart juice3
+OR (if no container exists)
+docker run -d --name juice-shop --restart unless-stopped -p 3000:3000 bkimminich/juice-shop
+
+3. Check if it's running:
+docker ps
+curl http://localhost:3000
+
+4. Check Apache:
+systemctl restart apache2
+
+5. Check Cloudflare tunnel (if using):
+ps aux | grep cloudflared
+
+The bad gateway usually means:
+- Docker container crashed/stopped
+- Port 3000 not responding
+- Apache proxy can't reach backend
+
+AFTER FIXING, INSTALL STANDALONE:
+==================================
+To avoid this in future, install standalone on port 4000:
+
+1. Copy script:
+scp /Users/walterbarr_1/sql-injection-lab/install_standalone_port4000.sh root@155.138.197.128:/tmp/
+
+2. Run it:
+bash /tmp/install_standalone_port4000.sh
+
+This gives you:
+- juice3.wonkatech.org (Docker with Cloudflare)
+- http://155.138.197.128:4000 (Standalone, no filters)

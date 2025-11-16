@@ -1,0 +1,85 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "cd /var/www/ctf-platform/\r"
+expect "# "
+
+# Create a simple script to add email functionality
+send "cat > add_email.sh << 'BASHEND'\r"
+send "#!/bin/bash\r"
+send "# Add email functionality to register.php\r"
+send "\r"
+send "# Find the line with the success message\r"
+send "LINE=\$(grep -n 'Registration successful! Please check' register.php | head -1 | cut -d: -f1)\r"
+send "\r"
+send "# Create temporary file with email code\r"
+send "cat > /tmp/email_code.txt << 'EMAILEND'\r"
+send "                    // Send verification email\r"
+send "                    \\\$to = \\\$email;\r"
+send "                    \\\$subject = \"WonkaTech CTF - Email Verification\";\r"
+send "                    \\\$verificationLink = BASE_URL . \"/verify.php?token=\" . \\\$verificationToken;\r"
+send "                    \r"
+send "                    \\\$message = \"Hello \" . \\\$username . \",\\n\\n\";\r"
+send "                    \\\$message .= \"Welcome to WonkaTech CTF Platform!\\n\\n\";\r"
+send "                    \\\$message .= \"Please click the link below to verify your email:\\n\\n\";\r"
+send "                    \\\$message .= \\\$verificationLink . \"\\n\\n\";\r"
+send "                    \\\$message .= \"If you did not register, please ignore this email.\\n\\n\";\r"
+send "                    \\\$message .= \"Best regards,\\n\";\r"
+send "                    \\\$message .= \"WonkaTech CTF Team\";\r"
+send "                    \r"
+send "                    \\\$headers = \"From: noreply@wonkatech.org\\r\\n\";\r"
+send "                    \\\$headers .= \"Reply-To: noreply@wonkatech.org\\r\\n\";\r"
+send "                    \\\$headers .= \"X-Mailer: PHP/\" . phpversion();\r"
+send "                    \r"
+send "                    // Send the email\r"
+send "                    if (!@mail(\\\$to, \\\$subject, \\\$message, \\\$headers)) {\r"
+send "                        error_log(\"Failed to send verification email to: \" . \\\$email);\r"
+send "                    }\r"
+send "EMAILEND\r"
+send "\r"
+send "# Insert the email code after the success message line\r"
+send "sed -i \"\\\${LINE}r /tmp/email_code.txt\" register.php\r"
+send "\r"
+send "# Clean up\r"
+send "rm /tmp/email_code.txt\r"
+send "\r"
+send "echo 'Email functionality added to register.php'\r"
+send "BASHEND\r"
+expect "# "
+
+send "chmod +x add_email.sh\r"
+expect "# "
+
+send "./add_email.sh\r"
+expect "# "
+
+send "rm add_email.sh\r"
+expect "# "
+
+# Verify PHP syntax
+send "php -l register.php\r"
+expect "# "
+
+# Restart Apache
+send "systemctl restart apache2\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo 'Email system configured successfully!'\r"
+expect "# "
+send "echo 'Users will now receive verification emails when they register.'\r"
+expect "# "
+
+send "exit\r"
+expect eof

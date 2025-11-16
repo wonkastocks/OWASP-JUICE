@@ -1,0 +1,61 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$R00tbeer02}
+
+spawn scp /Users/walterbarr_1/sql-injection-lab/clean_login.php root@155.138.197.128:/tmp/clean_login.php
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect eof
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect "# "
+
+# Backup current login.php
+send "cp /var/www/html/login.php /var/www/html/login.php.backup\r"
+expect "# "
+
+# Replace with clean version
+send "cp /tmp/clean_login.php /var/www/html/login.php\r"
+expect "# "
+
+# Set permissions
+send "chown www-data:www-data /var/www/html/login.php\r"
+expect "# "
+
+send "chmod 644 /var/www/html/login.php\r"
+expect "# "
+
+# Restart Apache
+send "systemctl restart apache2\r"
+expect "# "
+
+send "echo 'Clean login page deployed!'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\nClean login page has been deployed!"

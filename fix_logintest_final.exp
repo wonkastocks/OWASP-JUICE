@@ -1,0 +1,39 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect "# "
+
+# Update logintest.php to use wallys_monkey_parts database
+send "sed -i 's/sql_injection_db/wallys_monkey_parts/g' /var/www/html/logintest.php\r"
+expect "# "
+
+# Check if users table exists in wallys_monkey_parts
+send "mysql -u root -e 'USE wallys_monkey_parts; DESCRIBE users;' 2>&1 | head -5\r"
+expect "# "
+
+# Restart Apache
+send "systemctl restart apache2\r"
+expect "# "
+
+send "echo 'Database name fixed to wallys_monkey_parts!'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\nDatabase configuration updated!"

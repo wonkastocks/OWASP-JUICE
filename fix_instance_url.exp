@@ -1,0 +1,88 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+# SSH and fix the database
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "echo 'Fixing instance_url column issue...'\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+
+# Check current database structure
+send "echo 'Current database structure:'\r"
+expect "# "
+send "mysql -u root ctf_platform -e 'DESCRIBE users;' 2>/dev/null | head -10\r"
+expect "# "
+
+# Add instance_url column if it doesn't exist
+send "echo ''\r"
+expect "# "
+send "echo 'Adding instance_url column...'\r"
+expect "# "
+send "mysql -u root ctf_platform -e 'ALTER TABLE users ADD COLUMN IF NOT EXISTS instance_url VARCHAR(255) DEFAULT NULL;' 2>/dev/null || true\r"
+expect "# "
+
+# Also add instance_port for better management
+send "mysql -u root ctf_platform -e 'ALTER TABLE users ADD COLUMN IF NOT EXISTS instance_port INT DEFAULT NULL;' 2>/dev/null || true\r"
+expect "# "
+
+# Verify the columns were added
+send "echo ''\r"
+expect "# "
+send "echo 'Database structure after fix:'\r"
+expect "# "
+send "mysql -u root ctf_platform -e 'DESCRIBE users;' 2>/dev/null | grep -E 'instance|Field'\r"
+expect "# "
+
+# Assign ports to existing users who don't have them
+send "echo ''\r"
+expect "# "
+send "echo 'Assigning instance ports to existing users...'\r"
+expect "# "
+send "mysql -u root ctf_platform -e 'UPDATE users SET instance_port = 3000 + id WHERE instance_port IS NULL;' 2>/dev/null || true\r"
+expect "# "
+send "mysql -u root ctf_platform -e 'UPDATE users SET instance_url = CONCAT(\"http://155.138.197.128:\", instance_port) WHERE instance_url IS NULL;' 2>/dev/null || true\r"
+expect "# "
+
+# Show some sample data
+send "echo ''\r"
+expect "# "
+send "echo 'Sample user instances:'\r"
+expect "# "
+send "mysql -u root ctf_platform -e 'SELECT id, username, email, instance_url FROM users LIMIT 3;' 2>/dev/null || true\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo 'INSTANCE URL FIX COMPLETE!'\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo '✅ Added instance_url column to users table'\r"
+expect "# "
+send "echo '✅ Added instance_port column for management'\r"
+expect "# "
+send "echo '✅ Assigned ports to existing users'\r"
+expect "# "
+send "echo '✅ Dashboard should now work without errors'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'Test login at: https://wonkatech.org/login.php'\r"
+expect "# "
+
+send "exit\r"
+expect eof

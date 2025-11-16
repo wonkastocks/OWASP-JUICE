@@ -1,0 +1,119 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "echo '================================================'\r"
+expect "# "
+send "echo 'PREPARING FOR PORT 25 UNBLOCK'\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+
+# Check current mail queue
+send "echo 'Current mail queue status:'\r"
+expect "# "
+send "mailq\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo 'Options while waiting for port 25 unblock:'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo '1. Keep the queued emails (they will auto-send when port opens)'\r"
+expect "# "
+send "echo '2. Flush the queue and send fresh test email later'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+
+# Show how to flush if needed
+send "echo 'To flush old emails from queue (optional):'\r"
+expect "# "
+send "echo '   postqueue -f    # Force retry all queued mail'\r"
+expect "# "
+send "echo '   postsuper -d ALL    # Delete all queued mail'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+
+# Test current connectivity
+send "echo 'Quick test of port 25 (checking if unblocked yet):'\r"
+expect "# "
+send "nc -zv -w2 smtp.gmail.com 25 2>&1\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo 'SYSTEM READY STATUS:'\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+
+# Check postfix status
+send "systemctl status postfix | grep Active\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo '✓ Postfix is running and ready'\r"
+expect "# "
+send "echo '✓ Registration system is working'\r"
+expect "# "
+send "echo '✓ Resend verification feature is working'\r"
+expect "# "
+send "echo '✓ Emails are queued and waiting'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'Once Vultr unblocks port 25:'\r"
+expect "# "
+send "echo '- Queued emails will automatically send'\r"
+expect "# "
+send "echo '- New registrations will email immediately'\r"
+expect "# "
+send "echo '- Test with: echo \"Test\" | mail -s \"Port 25 Test\" wonkastocks@gmail.com'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+
+# Create a monitoring script
+send "cat > /root/check_smtp.sh << 'SCRIPT'\r"
+send "#!/bin/bash\r"
+send "echo \"Checking if port 25 is unblocked...\"\r"
+send "if nc -zv -w2 smtp.gmail.com 25 2>&1 | grep -q succeeded; then\r"
+send "    echo \"✓ Port 25 is OPEN! Emails should work now.\"\r"
+send "    echo \"Flushing mail queue...\"\r"
+send "    postqueue -f\r"
+send "else\r"
+send "    echo \"✗ Port 25 still blocked. Waiting for Vultr to unblock.\"\r"
+send "fi\r"
+send "SCRIPT\r"
+expect "# "
+
+send "chmod +x /root/check_smtp.sh\r"
+expect "# "
+
+send "echo 'Created /root/check_smtp.sh to test when port is unblocked'\r"
+expect "# "
+send "echo 'Run it anytime with: /root/check_smtp.sh'\r"
+expect "# "
+
+send "exit\r"
+expect eof

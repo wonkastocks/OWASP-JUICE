@@ -1,0 +1,109 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+
+# Server details
+set server "155.138.197.128"
+set user "root"
+set pass "\$p4ghetti\$uperD3luxe#"
+
+# Create admin directory
+spawn ssh $user@$server "mkdir -p /var/www/html/admin"
+expect {
+    "yes/no" { send "yes\r"; exp_continue }
+    "password:" { send "$pass\r" }
+}
+expect eof
+
+# Copy config.php
+spawn scp /Users/walterbarr_1/sql-injection-lab/admin/config.php $user@$server:/var/www/html/admin/
+expect {
+    "yes/no" { send "yes\r"; exp_continue }
+    "password:" { send "$pass\r" }
+}
+expect eof
+
+# Copy functions.php
+spawn scp /Users/walterbarr_1/sql-injection-lab/admin/functions.php $user@$server:/var/www/html/admin/
+expect {
+    "password:" { send "$pass\r" }
+}
+expect eof
+
+# Copy admin_login.php
+spawn scp /Users/walterbarr_1/sql-injection-lab/admin/admin_login.php $user@$server:/var/www/html/admin/
+expect {
+    "password:" { send "$pass\r" }
+}
+expect eof
+
+# Copy index.php
+spawn scp /Users/walterbarr_1/sql-injection-lab/admin/index.php $user@$server:/var/www/html/admin/
+expect {
+    "password:" { send "$pass\r" }
+}
+expect eof
+
+# Copy style.css
+spawn scp /Users/walterbarr_1/sql-injection-lab/admin/style.css $user@$server:/var/www/html/admin/
+expect {
+    "password:" { send "$pass\r" }
+}
+expect eof
+
+# Copy users.php
+spawn scp /Users/walterbarr_1/sql-injection-lab/admin/users.php $user@$server:/var/www/html/admin/
+expect {
+    "password:" { send "$pass\r" }
+}
+expect eof
+
+# Copy progress.php
+spawn scp /Users/walterbarr_1/sql-injection-lab/admin/progress.php $user@$server:/var/www/html/admin/
+expect {
+    "password:" { send "$pass\r" }
+}
+expect eof
+
+# Copy containers.php
+spawn scp /Users/walterbarr_1/sql-injection-lab/admin/containers.php $user@$server:/var/www/html/admin/
+expect {
+    "password:" { send "$pass\r" }
+}
+expect eof
+
+# Copy logout.php
+spawn scp /Users/walterbarr_1/sql-injection-lab/admin/logout.php $user@$server:/var/www/html/admin/
+expect {
+    "password:" { send "$pass\r" }
+}
+expect eof
+
+# Set permissions and restart Apache
+spawn ssh $user@$server
+expect {
+    "password:" { send "$pass\r" }
+}
+expect "# "
+send "chown -R www-data:www-data /var/www/html/admin\r"
+expect "# "
+send "chmod -R 755 /var/www/html/admin\r"
+expect "# "
+send "chmod 640 /var/www/html/admin/config.php\r"
+expect "# "
+send "mkdir -p /var/lib/php/sessions\r"
+expect "# "
+send "chown www-data:www-data /var/lib/php/sessions\r"
+expect "# "
+send "chmod 700 /var/lib/php/sessions\r"
+expect "# "
+send "systemctl restart apache2\r"
+expect "# "
+send "exit\r"
+expect eof
+
+puts "\n✅ Admin panel deployed successfully!"
+puts "\n📌 Admin Panel Access:"
+puts "   URL: http://155.138.197.128/admin/admin_login.php"
+puts "   Email: admin@wonkatech.com"
+puts "   Password: WonkaAdmin2024!"

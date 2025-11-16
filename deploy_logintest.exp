@@ -1,0 +1,59 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+# First SCP the file
+spawn scp /Users/walterbarr_1/sql-injection-lab/logintest.php root@155.138.197.128:/tmp/logintest.php
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect eof
+
+# Now SSH and move it to web directory
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect "# "
+
+# Move the file to web directory
+send "mv /tmp/logintest.php /var/www/html/logintest.php\r"
+expect "# "
+
+# Set proper permissions
+send "chown www-data:www-data /var/www/html/logintest.php\r"
+expect "# "
+
+send "chmod 644 /var/www/html/logintest.php\r"
+expect "# "
+
+# Restart Apache
+send "systemctl restart apache2\r"
+expect "# "
+
+send "echo 'logintest.php deployed successfully!'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\nlogintest.php has been deployed!"

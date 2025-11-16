@@ -1,0 +1,48 @@
+#!/usr/bin/expect -f
+
+set timeout 60
+set password {$$R00tbeer02}
+
+puts "🔍 Checking database structure and fixing monitor..."
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" { send "$password\r" }
+}
+expect "# "
+
+# Check actual database structure
+send "mysql -u root ctf_platform -e 'DESCRIBE containers;'\r"
+expect "# "
+
+# Check if assigned_to column exists
+send "mysql -u root ctf_platform -e \"SHOW COLUMNS FROM containers LIKE 'assigned_to';\"\r"
+expect "# "
+
+# If not, add it
+send "mysql -u root ctf_platform << 'EOF'
+-- Add assigned_to column if it doesn't exist
+ALTER TABLE containers ADD COLUMN assigned_to INT DEFAULT NULL;
+
+-- Add foreign key constraint
+ALTER TABLE containers ADD CONSTRAINT fk_containers_users FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL;
+
+-- Show updated structure
+DESCRIBE containers;
+EOF\r"
+expect "# "
+
+# Test monitor again
+send "echo '\\n📊 Testing container monitor after fix...'\r"
+expect "# "
+
+send "sudo -u www-data php /var/www/ctf-platform/admin/container_monitor.php\r"
+expect "# "
+
+send "echo '\\n✅ Database structure fixed!'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\n✅ Database structure updated!"

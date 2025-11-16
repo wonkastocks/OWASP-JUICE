@@ -1,0 +1,80 @@
+#!/usr/bin/expect -f
+
+set timeout 60
+set password {$$R00tbeer02}
+
+puts "✅ System Verification Report"
+puts "============================\n"
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" { send "$password\r" }
+}
+expect "# "
+
+# 1. Check user management features
+send "echo '1️⃣ User Management Features:'\r"
+expect "# "
+
+send "grep -q 'Check for duplicate email' /var/www/ctf-platform/admin/users.php && echo '   ✅ Duplicate email validation' || echo '   ❌ Missing duplicate check'\r"
+expect "# "
+
+send "grep -q 'one user per container' /var/www/ctf-platform/admin/users.php && echo '   ✅ One user per container check' || echo '   ❌ Missing container check'\r"
+expect "# "
+
+# 2. Check container monitoring
+send "echo '\\n2️⃣ Container Monitoring:'\r"
+expect "# "
+
+send "crontab -l | grep -q container_monitor && echo '   ✅ Cron job installed' || echo '   ❌ Cron job missing'\r"
+expect "# "
+
+send "ls -la /var/log/container_monitor.log 2>/dev/null && echo '   ✅ Log file exists' || echo '   ❌ Log file missing'\r"
+expect "# "
+
+# 3. Check database structure
+send "echo '\\n3️⃣ Database Structure:'\r"
+expect "# "
+
+send "mysql -u root ctf_platform -e \"SHOW COLUMNS FROM containers LIKE 'last_activity';\" | grep -q last_activity && echo '   ✅ last_activity column exists' || echo '   ❌ Missing last_activity'\r"
+expect "# "
+
+send "mysql -u root ctf_platform -e \"SHOW COLUMNS FROM containers LIKE 'assigned_to';\" | grep -q assigned_to && echo '   ✅ assigned_to column exists' || echo '   ❌ Missing assigned_to'\r"
+expect "# "
+
+# 4. Check Docker containers
+send "echo '\\n4️⃣ Docker Containers:'\r"
+expect "# "
+
+send "docker ps -a | grep -c juice-user | xargs echo '   Total containers:'\r"
+expect "# "
+
+send "docker ps | grep -c juice-user | xargs echo '   Running containers:'\r"
+expect "# "
+
+# 5. Check files
+send "echo '\\n5️⃣ Required Files:'\r"
+expect "# "
+
+send "ls -la /var/www/ctf-platform/admin/container_monitor.php 2>/dev/null && echo '   ✅ container_monitor.php' || echo '   ❌ Missing monitor'\r"
+expect "# "
+
+send "ls -la /var/www/ctf-platform/admin/container_restart.php 2>/dev/null && echo '   ✅ container_restart.php' || echo '   ❌ Missing restart'\r"
+expect "# "
+
+# 6. Test monitor execution
+send "echo '\\n6️⃣ Monitor Test:'\r"
+expect "# "
+
+send "timeout 5 sudo -u www-data php /var/www/ctf-platform/admin/container_monitor.php 2>&1 | grep -q 'Container monitoring cycle completed' && echo '   ✅ Monitor runs successfully' || echo '   ⚠️  Monitor has issues'\r"
+expect "# "
+
+send "echo '\\n============================'\r"
+expect "# "
+send "echo '✅ System verification complete!'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\n✅ Verification completed!"

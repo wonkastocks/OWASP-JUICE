@@ -1,0 +1,108 @@
+#!/usr/bin/expect -f
+
+set timeout 60
+set password {$$R00tbeer02}
+
+puts "🔧 Final dashboard patch to ensure HTTPS URLs..."
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" { send "$password\r" }
+}
+expect "# "
+
+# Check what's currently in dashboard.php
+send "grep -n 'instanceUrl\\|http://155' /var/www/ctf-platform/dashboard.php | head -10\r"
+expect "# "
+
+# Create a comprehensive fix
+send "cat > /tmp/fix_dashboard_final.php << 'EOFFIX'
+<?php
+\$file = '/var/www/ctf-platform/dashboard.php';
+\$content = file_get_contents(\$file);
+
+// Fix the instance URL generation line
+\$content = preg_replace(
+    '/\\\$instanceUrl = \"http:\\/\\/155\\.138\\.197\\.128:\\\$port\";/',
+    '\$instanceNum = \$port - 3000; \$instanceUrl = \"https://juice{\$instanceNum}.wonkatech.org\";',
+    \$content
+);
+
+// Fix any remaining IP:port references
+\$patterns = array(
+    '/http:\\/\\/155\\.138\\.197\\.128:3001/' => 'https://juice1.wonkatech.org',
+    '/http:\\/\\/155\\.138\\.197\\.128:3002/' => 'https://juice2.wonkatech.org',
+    '/http:\\/\\/155\\.138\\.197\\.128:3003/' => 'https://juice3.wonkatech.org',
+    '/http:\\/\\/155\\.138\\.197\\.128:3004/' => 'https://juice4.wonkatech.org',
+    '/http:\\/\\/155\\.138\\.197\\.128:3005/' => 'https://juice5.wonkatech.org',
+);
+
+foreach (\$patterns as \$pattern => \$replacement) {
+    \$content = preg_replace(\$pattern, \$replacement, \$content);
+}
+
+// Look for the line where instance URL is set
+if (strpos(\$content, 'http://155.138.197.128') !== false) {
+    echo \"Found remaining IP references, fixing...\\n\";
+    // Generic pattern to catch any port
+    for (\$i = 1; \$i <= 20; \$i++) {
+        \$port = 3000 + \$i;
+        \$content = str_replace(
+            \"http://155.138.197.128:\$port\",
+            \"https://juice\$i.wonkatech.org\",
+            \$content
+        );
+    }
+}
+
+file_put_contents(\$file, \$content);
+echo \"Dashboard patched successfully\\n\";
+
+// Also check if instance_url is being set correctly
+if (strpos(\$content, '\$instanceUrl = \"http') !== false) {
+    echo \"WARNING: Still found HTTP URL generation\\n\";
+} else {
+    echo \"✅ All URLs now using HTTPS\\n\";
+}
+?>
+EOFFIX\r"
+expect "# "
+
+send "php /tmp/fix_dashboard_final.php\r"
+expect "# "
+
+# Verify the fix
+send "echo '\\n📋 Verifying dashboard.php:'\r"
+expect "# "
+
+send "grep -c 'https://juice' /var/www/ctf-platform/dashboard.php\r"
+expect "# "
+
+send "grep -c 'http://155' /var/www/ctf-platform/dashboard.php\r"
+expect "# "
+
+# Test with a real user
+send "echo '\\n🧪 Testing with user Wonkastocks (ID 3):'\r"
+expect "# "
+
+send "mysql -u root ctf_platform -e \"SELECT username, instance_url FROM users WHERE id = 3;\"\r"
+expect "# "
+
+# Restart Apache to clear any caches
+send "systemctl restart apache2\r"
+expect "# "
+
+send "echo '\\n✅ Dashboard fully patched!'\r"
+expect "# "
+
+send "echo '\\n📌 Users will now see:'\r"
+expect "# "
+send "echo '   Launch Instance → https://juice3.wonkatech.org'\r"
+expect "# "
+send "echo '   Instead of → http://155.138.197.128:3003'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\n✅ Dashboard fully patched for HTTPS URLs!"

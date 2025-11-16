@@ -1,0 +1,31 @@
+# Wally's Monkey Parts Deployment Commands
+# Run these commands one by one
+
+# Step 1: Copy database setup file
+scp /Users/walterbarr_1/sql-injection-lab/wallys_database_setup.sql root@155.138.197.128:/root/
+
+# Step 2: Copy login page
+scp /Users/walterbarr_1/sql-injection-lab/wallys_login.php root@155.138.197.128:/var/www/html/
+
+# Step 3: Copy dashboard
+scp /Users/walterbarr_1/sql-injection-lab/wallys_dashboard.php root@155.138.197.128:/var/www/html/
+
+# Step 4: Copy logout script  
+scp /Users/walterbarr_1/sql-injection-lab/wallys_logout.php root@155.138.197.128:/var/www/html/
+
+# Step 5: SSH into server and run setup
+ssh root@155.138.197.128
+
+# Once logged in, run these commands:
+mysql < /root/wallys_database_setup.sql
+chown www-data:www-data /var/www/html/wallys_*.php
+chmod 644 /var/www/html/wallys_*.php
+systemctl restart apache2
+exit
+
+# Test URL:
+# http://155.138.197.128/wallys_login.php
+
+# Test SQL injection:
+# Username: admin' --
+# Password: anything

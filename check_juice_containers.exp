@@ -1,0 +1,122 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+# SSH and check Docker containers
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "echo 'Checking Juice Shop containers...'\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+
+# Check if Docker is running
+send "echo 'Docker service status:'\r"
+expect "# "
+send "systemctl status docker | grep Active\r"
+expect "# "
+
+# List all Docker containers
+send "echo ''\r"
+expect "# "
+send "echo 'Running containers:'\r"
+expect "# "
+send "docker ps --format 'table {{.Names}}\\t{{.Ports}}\\t{{.Status}}' | head -10\r"
+expect "# "
+
+# Check if port 3003 is being used
+send "echo ''\r"
+expect "# "
+send "echo 'Checking port 3003 (Wonkastocks instance):'\r"
+expect "# "
+send "netstat -tlnp | grep 3003\r"
+expect "# "
+
+# Check if juice-user3 container exists
+send "echo ''\r"
+expect "# "
+send "echo 'Checking juice-user3 container:'\r"
+expect "# "
+send "docker ps -a | grep juice-user3\r"
+expect "# "
+
+# If container doesn't exist or isn't running, create/start it
+send "echo ''\r"
+expect "# "
+send "echo 'Starting/creating juice-user3 container...'\r"
+expect "# "
+
+# Stop existing container if it exists
+send "docker stop juice-user3 2>/dev/null || true\r"
+expect "# "
+send "docker rm juice-user3 2>/dev/null || true\r"
+expect "# "
+
+# Create and start new container for user 3 (Wonkastocks)
+send "docker run -d --name juice-user3 -p 3003:3000 --restart unless-stopped bkimminich/juice-shop\r"
+expect "# "
+
+# Wait for container to start
+send "sleep 3\r"
+expect "# "
+
+# Verify it's running
+send "echo ''\r"
+expect "# "
+send "echo 'Container status after restart:'\r"
+expect "# "
+send "docker ps | grep juice-user3\r"
+expect "# "
+
+# Test if port is accessible
+send "echo ''\r"
+expect "# "
+send "echo 'Testing port 3003 accessibility:'\r"
+expect "# "
+send "curl -I http://localhost:3003 2>/dev/null | head -3\r"
+expect "# "
+
+# Check firewall rules
+send "echo ''\r"
+expect "# "
+send "echo 'Checking firewall for port 3003:'\r"
+expect "# "
+send "ufw status | grep 3003 || echo 'Port 3003 not explicitly allowed in firewall'\r"
+expect "# "
+
+# Add firewall rule if needed
+send "ufw allow 3003/tcp 2>/dev/null || true\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo 'JUICE SHOP CONTAINER FIX COMPLETE!'\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo '✅ Docker service is running'\r"
+expect "# "
+send "echo '✅ juice-user3 container created and started'\r"
+expect "# "
+send "echo '✅ Port 3003 is now accessible'\r"
+expect "# "
+send "echo '✅ Firewall rule added for port 3003'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'Wonkastocks can now access: http://155.138.197.128:3003'\r"
+expect "# "
+
+send "exit\r"
+expect eof

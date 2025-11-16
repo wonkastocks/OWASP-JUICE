@@ -1,0 +1,96 @@
+#!/usr/bin/expect -f
+
+set timeout 60
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+# Update config.php to use HTTPS
+send "sed -i \"s|define('BASE_URL', 'https://wonkatech.org');|define('BASE_URL', 'https://wonkatech.org');|\" /var/www/ctf-platform/config.php\r"
+expect "# "
+
+# Update all PHP files to use HTTPS URLs for the instances
+send "cd /var/www/ctf-platform/\r"
+expect "# "
+
+# Update dashboard.php to use HTTPS for instance URLs
+send "sed -i 's|http://155.138.197.128:|https://wonkatech.org:|g' dashboard.php\r"
+expect "# "
+
+# Update the main index.php links
+send "sed -i 's|http://155.138.197.128|https://wonkatech.org|g' index.php\r"
+expect "# "
+send "sed -i 's|href=\"/|href=\"https://wonkatech.org/|g' index.php\r"
+expect "# "
+
+# Update register.php links
+send "sed -i 's|http://155.138.197.128|https://wonkatech.org|g' register.php\r"
+expect "# "
+send "sed -i 's|href=\"/|href=\"https://wonkatech.org/|g' register.php\r"
+expect "# "
+
+# Update login.php links
+send "sed -i 's|http://155.138.197.128|https://wonkatech.org|g' login.php\r"
+expect "# "
+send "sed -i 's|href=\"/|href=\"https://wonkatech.org/|g' login.php\r"
+expect "# "
+
+# Update verify.php links
+send "sed -i 's|http://155.138.197.128|https://wonkatech.org|g' verify.php\r"
+expect "# "
+send "sed -i 's|href=\"/|href=\"https://wonkatech.org/|g' verify.php\r"
+expect "# "
+
+# Update Apache to handle Cloudflare's forwarded HTTPS
+send "cat > /etc/apache2/sites-available/default.conf << 'EOF'\r"
+send "<VirtualHost *:80>\r"
+send "    ServerName wonkatech.org\r"
+send "    ServerAlias www.wonkatech.org\r"
+send "    ServerAdmin webmaster@wonkatech.org\r"
+send "    DocumentRoot /var/www/ctf-platform\r"
+send "    \r"
+send "    # Trust Cloudflare's forwarded protocol\r"
+send "    SetEnvIf X-Forwarded-Proto https HTTPS=on\r"
+send "    \r"
+send "    <Directory /var/www/ctf-platform>\r"
+send "        Options Indexes FollowSymLinks\r"
+send "        AllowOverride All\r"
+send "        Require all granted\r"
+send "    </Directory>\r"
+send "    \r"
+send "    # PHP handling\r"
+send "    <FilesMatch \\.php$>\r"
+send "        SetHandler application/x-httpd-php\r"
+send "    </FilesMatch>\r"
+send "    \r"
+send "    DirectoryIndex index.php index.html\r"
+send "    \r"
+send "    ErrorLog /var/log/apache2/error.log\r"
+send "    CustomLog /var/log/apache2/access.log combined\r"
+send "</VirtualHost>\r"
+send "EOF\r"
+expect "# "
+
+# Restart Apache
+send "systemctl reload apache2\r"
+expect "# "
+
+# Update dashboard.php to build HTTPS URLs correctly
+send "sed -i \"s|\\\$instanceUrl = 'http://155.138.197.128:' . \\\$port;|\\\$instanceUrl = 'https://wonkatech.org:' . \\\$port;|\" /var/www/ctf-platform/dashboard.php\r"
+expect "# "
+
+# Check the configuration
+send "grep BASE_URL /var/www/ctf-platform/config.php\r"
+expect "# "
+
+send "echo 'HTTPS configuration complete!'\r"
+expect "# "
+
+send "exit\r"
+expect eof

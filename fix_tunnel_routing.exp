@@ -1,0 +1,50 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+# Check tunnel status
+send "systemctl status cloudflared | head -15\r"
+expect "# "
+
+# Check current routes
+send "cloudflared tunnel route list\r"
+expect "# "
+
+# Try to add the root domain route
+send "cloudflared tunnel route dns wonkatech-ctf wonkatech.org --overwrite-dns\r"
+expect "# "
+
+# Also add www
+send "cloudflared tunnel route dns wonkatech-ctf www.wonkatech.org --overwrite-dns\r"
+expect "# "
+
+# Restart the tunnel service
+send "systemctl restart cloudflared\r"
+expect "# "
+
+# Wait a moment
+send "sleep 3\r"
+expect "# "
+
+# Check if it's running
+send "systemctl is-active cloudflared\r"
+expect "# "
+
+# Test connectivity
+send "curl -I http://localhost:80 | head -3\r"
+expect "# "
+
+send "echo 'Tunnel routing updated!'\r"
+expect "# "
+
+send "exit\r"
+expect eof

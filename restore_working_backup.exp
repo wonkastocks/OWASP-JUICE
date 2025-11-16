@@ -1,0 +1,36 @@
+#!/usr/bin/expect -f
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect "password:"
+send "$password\r"
+expect "# "
+
+# Remove the current broken admin
+send "rm -rf /var/www/ctf-platform/admin\r"
+expect "# "
+
+# Restore from the backup that has clean PHP structure
+send "cp -r /root/admin_backup_broken /var/www/ctf-platform/admin\r"
+expect "# "
+
+# Set proper permissions
+send "chown -R www-data:www-data /var/www/ctf-platform/admin/\r"
+expect "# "
+
+send "chmod -R 644 /var/www/ctf-platform/admin/*.php\r"
+expect "# "
+
+# Test if it displays clean HTML now
+send "curl -s http://localhost/admin/users.php | head -5\r"
+expect "# "
+
+send "systemctl restart apache2\r"
+expect "# "
+
+send "echo 'Restored from clean backup'\r"
+expect "# "
+
+send "exit\r"
+expect eof

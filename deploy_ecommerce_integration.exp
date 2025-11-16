@@ -1,0 +1,94 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+# First SCP all the new files
+spawn scp /Users/walterbarr_1/sql-injection-lab/session_header.php /Users/walterbarr_1/sql-injection-lab/index_with_session.php /Users/walterbarr_1/sql-injection-lab/dashboard_profile.php /Users/walterbarr_1/sql-injection-lab/login_ecommerce.php root@155.138.197.128:/tmp/
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect eof
+
+# Now SSH and deploy everything
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect "# "
+
+send "echo 'Backing up current files...'\r"
+expect "# "
+
+# Backup current files
+send "cp /var/www/html/index.php /var/www/html/index.php.backup.`date +%Y%m%d_%H%M%S`\r"
+expect "# "
+
+send "cp /var/www/html/login.php /var/www/html/login.php.backup.`date +%Y%m%d_%H%M%S`\r"
+expect "# "
+
+send "cp /var/www/html/dashboard.php /var/www/html/dashboard.php.backup.`date +%Y%m%d_%H%M%S`\r"
+expect "# "
+
+send "echo 'Deploying new e-commerce integrated files...'\r"
+expect "# "
+
+# Deploy session header
+send "cp /tmp/session_header.php /var/www/html/session_header.php\r"
+expect "# "
+
+# Deploy new index with session
+send "cp /tmp/index_with_session.php /var/www/html/index.php\r"
+expect "# "
+
+# Deploy new profile-style dashboard
+send "cp /tmp/dashboard_profile.php /var/www/html/dashboard.php\r"
+expect "# "
+
+# Deploy new e-commerce style login
+send "cp /tmp/login_ecommerce.php /var/www/html/login.php\r"
+expect "# "
+
+# Set permissions for all files
+send "chown -R www-data:www-data /var/www/html/*.php\r"
+expect "# "
+
+send "chmod 644 /var/www/html/*.php\r"
+expect "# "
+
+# Restart services
+send "systemctl restart apache2\r"
+expect "# "
+
+send "systemctl restart php8.1-fpm\r"
+expect "# "
+
+send "echo 'E-commerce integration deployed successfully!'\r"
+expect "# "
+
+# Quick test
+send "curl -s http://localhost/ | grep -o 'Sign In\\|Welcome back' | head -1\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\nE-commerce integration complete!"

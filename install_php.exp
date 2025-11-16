@@ -1,0 +1,38 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+# Install PHP and required modules
+send "apt-get update && apt-get install -y php libapache2-mod-php php-mysql php-mbstring\r"
+expect "# "
+
+# Enable PHP module
+send "a2enmod php8.1\r"
+expect "# "
+
+# Restart Apache
+send "systemctl restart apache2\r"
+expect "# "
+
+# Test PHP
+send "echo '<?php phpinfo(); ?>' > /var/www/ctf-platform/test.php\r"
+expect "# "
+
+send "curl -s http://localhost/test.php | grep -o 'PHP Version'\r"
+expect "# "
+
+# Check the main page
+send "curl -s http://localhost/ | head -20\r"
+expect "# "
+
+send "exit\r"
+expect eof

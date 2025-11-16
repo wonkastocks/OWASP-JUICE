@@ -1,0 +1,114 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+
+# Connect to server
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "\$\$R00tbeer02\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "\$\$R00tbeer02\r"
+    }
+}
+
+expect "root@*"
+
+# Create container management script
+send "cat > /var/www/html/container_manager.php << 'ENDPHP'\r"
+send "<?php\r"
+send "function assignContainerToUser(\\\$username, \\\$conn) {\r"
+send "    // Find next available container (1-10)\r"
+send "    \\\$used_containers = array();\r"
+send "    \\\$result = \\\$conn->query(\"SELECT instance_url FROM users WHERE instance_url IS NOT NULL\");\r"
+send "    if(\\\$result) {\r"
+send "        while(\\\$row = \\\$result->fetch_assoc()) {\r"
+send "            \\\$url = \\\$row\\['instance_url'\\];\r"
+send "            if(preg_match('/juice(\\\\d+)/', \\\$url, \\\$matches)) {\r"
+send "                \\\$used_containers\\[\\] = intval(\\\$matches\\[1\\]);\r"
+send "            }\r"
+send "        }\r"
+send "    }\r"
+send "    \r"
+send "    // Find first available container\r"
+send "    for(\\\$i = 1; \\\$i <= 10; \\\$i++) {\r"
+send "        if(!in_array(\\\$i, \\\$used_containers)) {\r"
+send "            \\\$instance_url = 'https://juice' . \\\$i . '.wonkatech.org';\r"
+send "            \r"
+send "            // Ensure container is running\r"
+send "            \\\$port = 3000 + \\\$i;\r"
+send "            exec('docker ps | grep juice'.\\\$i, \\\$output, \\\$return);\r"
+send "            if(\\\$return != 0) {\r"
+send "                // Container not running, start it\r"
+send "                exec('docker run -d --name juice'.\\\$i.' -p '.\\\$port.':3000 --restart unless-stopped bkimminich/juice-shop:latest 2>&1');\r"
+send "                sleep(3);\r"
+send "            }\r"
+send "            \r"
+send "            return \\\$instance_url;\r"
+send "        }\r"
+send "    }\r"
+send "    \r"
+send "    return null; // All containers in use\r"
+send "}\r"
+send "?>\r"
+send "ENDPHP\r"
+expect "root@*"
+
+# Update register.php to use container manager after email verification
+send "cp /var/www/html/register.php /var/www/html/register.php.backup\r"
+expect "root@*"
+
+# Add container assignment to the verify.php instead (after email verification)
+send "cat > /var/www/html/verify_update.php << 'ENDPHP'\r"
+send "<?php\r"
+send "// Add this code to verify.php after successful verification\r"
+send "require_once 'db_config.php';\r"
+send "require_once 'container_manager.php';\r"
+send "\r"
+send "// This should be added after the user is verified\r"
+send "// Find where it updates is_verified = 1 and add:\r"
+send "function assignInstanceAfterVerification(\\\$username) {\r"
+send "    \\\$conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);\r"
+send "    \r"
+send "    // Check if user already has an instance\r"
+send "    \\\$check_stmt = \\\$conn->prepare(\"SELECT instance_url FROM users WHERE username = ?\");\r"
+send "    \\\$check_stmt->bind_param(\"s\", \\\$username);\r"
+send "    \\\$check_stmt->execute();\r"
+send "    \\\$result = \\\$check_stmt->get_result();\r"
+send "    \\\$row = \\\$result->fetch_assoc();\r"
+send "    \r"
+send "    if(empty(\\\$row\\['instance_url'\\]) || \\\$row\\['instance_url'\\] == null) {\r"
+send "        \\\$instance_url = assignContainerToUser(\\\$username, \\\$conn);\r"
+send "        if(\\\$instance_url) {\r"
+send "            \\\$update_stmt = \\\$conn->prepare(\"UPDATE users SET instance_url = ? WHERE username = ?\");\r"
+send "            \\\$update_stmt->bind_param(\"ss\", \\\$instance_url, \\\$username);\r"
+send "            \\\$update_stmt->execute();\r"
+send "        }\r"
+send "    }\r"
+send "}\r"
+send "?>\r"
+send "ENDPHP\r"
+expect "root@*"
+
+# Update the dashboard.php to properly show the instance URL
+send "sed -i \"s|instance_url = 'https://juice.*;|instance_url = '\\\$instance_url';|g\" /var/www/html/dashboard.php\r"
+expect "root@*"
+
+# Update willy's database record with correct instance
+send "mysql -u root ctf_db -e \"UPDATE users SET instance_url='https://juice6.wonkatech.org' WHERE username='willy';\"\r"
+expect "root@*"
+
+# Verify the update
+send "mysql -u root ctf_db -e \"SELECT username, instance_url FROM users;\"\r"
+expect "root@*"
+
+# Check all containers are running
+send "docker ps --format 'table {{.Names}}\t{{.Status}}' | grep juice | head -10\r"
+expect "root@*"
+
+send "exit\r"
+expect eof

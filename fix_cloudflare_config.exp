@@ -1,0 +1,80 @@
+#!/usr/bin/expect -f
+
+set timeout 60
+set password {$$R00tbeer02}
+
+puts "🔧 Fixing Cloudflare configuration..."
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" { send "$password\r" }
+}
+expect "# "
+
+# Check the error
+send "journalctl -xeu cloudflared.service --no-pager | tail -20\r"
+expect "# "
+
+# The issue is likely the tunnel name. Let's check existing config
+send "cloudflared tunnel list\r"
+expect "# "
+
+# Restore previous config first
+send "cp /etc/cloudflared/config.yml.backup.* /etc/cloudflared/config.yml 2>/dev/null || echo 'No backup found'\r"
+expect "# "
+
+# Create a simpler config with just a few test subdomains
+send "cat > /etc/cloudflared/config.yml << 'EOF'
+url: http://localhost:80
+tunnel: wonkatech
+credentials-file: /root/.cloudflared/*.json
+
+ingress:
+  # Main site
+  - hostname: wonkatech.org
+    service: http://localhost:80
+  
+  # Test juice instances
+  - hostname: juice1.wonkatech.org
+    service: http://localhost:3001
+  
+  - hostname: juice2.wonkatech.org
+    service: http://localhost:3002
+  
+  - hostname: juice3.wonkatech.org
+    service: http://localhost:3003
+  
+  - hostname: juice4.wonkatech.org
+    service: http://localhost:3004
+  
+  - hostname: juice5.wonkatech.org
+    service: http://localhost:3005
+  
+  # Catch-all
+  - service: http_status:404
+EOF\r"
+expect "# "
+
+# Validate
+send "cloudflared tunnel ingress validate\r"
+expect "# "
+
+# Try to restart
+send "systemctl restart cloudflared\r"
+expect "# "
+
+send "sleep 3\r"
+expect "# "
+
+# Check status
+send "systemctl status cloudflared | head -15\r"
+expect "# "
+
+# If still failing, check with simpler config
+send "ls -la /root/.cloudflared/\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\n🔧 Attempted to fix Cloudflare configuration"

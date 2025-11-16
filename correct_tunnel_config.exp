@@ -1,0 +1,94 @@
+#!/usr/bin/expect -f
+
+set timeout 60
+set password {$$R00tbeer02}
+
+puts "🔧 Correcting Cloudflare Tunnel configuration..."
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" { send "$password\r" }
+}
+expect "# "
+
+# Use the correct tunnel name and credentials file
+send "cat > /etc/cloudflared/config.yml << 'EOF'
+tunnel: wonkatech-ctf
+credentials-file: /root/.cloudflared/3e6698e3-59fb-4bb4-aa52-7dde59039354.json
+
+ingress:
+  # Main site
+  - hostname: wonkatech.org
+    service: http://localhost:80
+  
+  # Juice Shop instances
+  - hostname: juice1.wonkatech.org
+    service: http://localhost:3001
+  
+  - hostname: juice2.wonkatech.org
+    service: http://localhost:3002
+  
+  - hostname: juice3.wonkatech.org
+    service: http://localhost:3003
+  
+  - hostname: juice4.wonkatech.org
+    service: http://localhost:3004
+  
+  - hostname: juice5.wonkatech.org
+    service: http://localhost:3005
+  
+  # Catch-all
+  - service: http_status:404
+EOF\r"
+expect "# "
+
+# Validate
+send "cloudflared tunnel ingress validate\r"
+expect "# "
+
+# Restart service
+send "systemctl restart cloudflared\r"
+expect "# "
+
+send "sleep 5\r"
+expect "# "
+
+# Check status
+send "systemctl status cloudflared --no-pager | head -20\r"
+expect "# "
+
+# Test HTTPS access
+send "echo '\\n🧪 Testing HTTPS access:'\r"
+expect "# "
+
+send "curl -s -o /dev/null -w 'Main site: %{http_code}\\n' https://wonkatech.org\r"
+expect "# "
+
+send "curl -s -o /dev/null -w 'Juice3: %{http_code}\\n' https://juice3.wonkatech.org 2>/dev/null || echo 'juice3: DNS not configured yet'\r"
+expect "# "
+
+send "echo '\\n✅ Cloudflare Tunnel configured!'\r"
+expect "# "
+
+send "echo '\\n📌 To complete setup:'\r"
+expect "# "
+
+send "echo '1. Add DNS records in Cloudflare dashboard:'\r"
+expect "# "
+
+send "echo '   - Type: CNAME'\r"
+expect "# "
+
+send "echo '   - Name: juice1, juice2, juice3, etc.'\r"
+expect "# "
+
+send "echo '   - Target: wonkatech.org'\r"
+expect "# "
+
+send "echo '\\n2. Or use wildcard: *.wonkatech.org → wonkatech.org'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\n✅ Cloudflare Tunnel fixed!"

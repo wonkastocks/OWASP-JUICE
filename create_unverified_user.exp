@@ -1,0 +1,72 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "cd /var/www/ctf-platform/\r"
+expect "# "
+
+# Create a PHP script to add an unverified test user directly to database
+send "cat > create_test_user.php << 'PHPEND'\r"
+send "<?php\r"
+send "require_once 'config.php';\r"
+send "\r"
+send "// Create an unverified test user\r"
+send "\\\$username = 'unverified_user';\r"
+send "\\\$email = 'unverified@test.com';\r"
+send "\\\$password = password_hash('TestPass123!', PASSWORD_DEFAULT);\r"
+send "\\\$token = bin2hex(random_bytes(32));\r"
+send "\r"
+send "// First check if user exists\r"
+send "\\\$check = \\\$pdo->prepare('SELECT id FROM users WHERE username = ? OR email = ?');\r"
+send "\\\$check->execute([\\\$username, \\\$email]);\r"
+send "\r"
+send "if (\\\$check->fetch()) {\r"
+send "    // Delete existing user\r"
+send "    \\\$delete = \\\$pdo->prepare('DELETE FROM users WHERE username = ? OR email = ?');\r"
+send "    \\\$delete->execute([\\\$username, \\\$email]);\r"
+send "    echo 'Deleted existing test user\\n';\r"
+send "}\r"
+send "\r"
+send "// Insert new unverified user\r"
+send "\\\$stmt = \\\$pdo->prepare('INSERT INTO users (username, email, password, verification_token, email_verified) VALUES (?, ?, ?, ?, 0)');\r"
+send "\\\$stmt->execute([\\\$username, \\\$email, \\\$password, \\\$token]);\r"
+send "\r"
+send "echo 'Created unverified test user:\\n';\r"
+send "echo 'Username: ' . \\\$username . '\\n';\r"
+send "echo 'Email: ' . \\\$email . '\\n';\r"
+send "echo 'Password: TestPass123!\\n';\r"
+send "echo 'Email verified: No\\n';\r"
+send "?>\r"
+send "PHPEND\r"
+expect "# "
+
+# Run the script
+send "php create_test_user.php\r"
+expect "# "
+
+# Clean up
+send "rm create_test_user.php\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo 'Test unverified user created!'\r"
+expect "# "
+send "echo 'Now try logging in with:'\r"
+expect "# "
+send "echo 'Username: unverified_user'\r"
+expect "# "
+send "echo 'Password: TestPass123!'\r"
+expect "# "
+
+send "exit\r"
+expect eof

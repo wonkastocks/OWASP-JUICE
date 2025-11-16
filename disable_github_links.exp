@@ -1,0 +1,154 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+# SSH and disable GitHub links
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "echo 'Disabling GitHub links in Juice Shop instances...'\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+
+# Stop all containers
+send "echo 'Stopping all Juice Shop containers...'\r"
+expect "# "
+send "docker stop \$(docker ps -q --filter name=juice) 2>/dev/null\r"
+expect "# "
+send "docker rm \$(docker ps -aq --filter name=juice) 2>/dev/null\r"
+expect "# "
+
+# Create a custom configuration file
+send "echo 'Creating custom configuration to disable GitHub links...'\r"
+expect "# "
+send "mkdir -p /root/juice-custom\r"
+expect "# "
+
+# Create custom config file
+send "cat > /root/juice-custom/custom.yml << 'EOF'\r"
+send "application:\r"
+send "  domain: \"155.138.197.128\"\r"
+send "  name: \"WonkaTech CTF Juice Shop\"\r"
+send "  logo: \"/assets/public/images/JuiceShop_Logo.png\"\r"
+send "  favicon: \"/assets/public/favicon_js.ico\"\r"
+send "  theme: \"bluegrey-lightgreen\"\r"
+send "  showVersionNumber: true\r"
+send "  showGitHubLinks: false\r"
+send "  showChallengeHints: true\r"
+send "  showChallengeCountryFlags: false\r"
+send "  showVulnerabilityMitigations: false\r"
+send "  showRedirectNotifications: true\r"
+send "  showFeedbackButtons: true\r"
+send "  bluePrintMode: false\r"
+send "  gitHubRibbon: false\r"
+send "  twitterUrl: null\r"
+send "  facebookUrl: null\r"
+send "  slackUrl: null\r"
+send "  redditUrl: null\r"
+send "  pressKitUrl: null\r"
+send "  social:\r"
+send "    twitterUrl: null\r"
+send "    facebookUrl: null\r"
+send "    slackUrl: null\r"
+send "    redditUrl: null\r"
+send "    pressKitUrl: null\r"
+send "EOF\r"
+expect "# "
+
+# Create Dockerfile for custom image
+send "cat > /root/juice-custom/Dockerfile << 'EOF'\r"
+send "FROM bkimminich/juice-shop:latest\r"
+send "\r"
+send "# Copy custom configuration\r"
+send "COPY custom.yml /juice-shop/config/custom.yml\r"
+send "\r"
+send "# Set environment to use custom config\r"
+send "ENV NODE_ENV=custom\r"
+send "ENV NODE_APP_INSTANCE=custom\r"
+send "\r"
+send "# Override the application config to disable GitHub\r"
+send "RUN echo \"application.showGitHubLinks = false\" >> /juice-shop/config/default.yml && \\\\\r"
+send "    echo \"application.gitHubRibbon = false\" >> /juice-shop/config/default.yml\r"
+send "EOF\r"
+expect "# "
+
+# Build custom image
+send "echo ''\r"
+expect "# "
+send "echo 'Building custom Juice Shop image without GitHub links...'\r"
+expect "# "
+send "cd /root/juice-custom && docker build -t juice-shop-nogithub . 2>&1 | tail -10\r"
+expect "# "
+
+# If build fails, use environment variables instead
+send "echo ''\r"
+expect "# "
+send "echo 'Starting containers with GitHub links disabled...'\r"
+expect "# "
+
+# Start containers with configuration to hide GitHub
+send "for i in 1 2 3 4 5; do\r"
+expect "# "
+send "  docker run -d \\\r"
+send "    --name juice-user\$i \\\r"
+send "    -p \$((3000+i)):3000 \\\r"
+send "    -e NODE_ENV=ctf \\\r"
+send "    -e \"NODE_CONFIG={\\\"application\\\":{\\\"showGitHubLinks\\\":false,\\\"gitHubRibbon\\\":false,\\\"name\\\":\\\"WonkaTech CTF\\\",\\\"domain\\\":\\\"155.138.197.128\\\"},\\\"products\\\":{\\\"currency\\\":\\\"USD\\\"}}\" \\\r"
+send "    --restart unless-stopped \\\r"
+send "    bkimminich/juice-shop\r"
+expect "# "
+send "done\r"
+expect "# "
+
+# Wait for containers to start
+send "sleep 8\r"
+expect "# "
+
+# Verify containers are running
+send "echo ''\r"
+expect "# "
+send "echo 'Container status:'\r"
+expect "# "
+send "docker ps --format 'table {{.Names}}\\t{{.Status}}' | grep juice\r"
+expect "# "
+
+# Test if configuration is applied
+send "echo ''\r"
+expect "# "
+send "echo 'Testing configuration on port 3003:'\r"
+expect "# "
+send "curl -s http://localhost:3003/ | grep -c 'github' || echo 'GitHub references removed'\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo 'GITHUB LINKS REMOVAL COMPLETE!'\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo '✅ All containers restarted without GitHub links'\r"
+expect "# "
+send "echo '✅ showGitHubLinks set to false'\r"
+expect "# "
+send "echo '✅ gitHubRibbon disabled'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'Note: Clear browser cache to see the changes'\r"
+expect "# "
+send "echo 'The GitHub link should no longer appear in the menu'\r"
+expect "# "
+
+send "exit\r"
+expect eof

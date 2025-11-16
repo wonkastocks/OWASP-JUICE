@@ -1,0 +1,42 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+
+# Connect to server
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "\$\$R00tbeer02\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "\$\$R00tbeer02\r"
+    }
+}
+
+expect "root@*"
+
+# Check juice6 container status
+send "docker ps -a | grep juice6\r"
+expect "root@*"
+
+# Stop and remove old juice6 if exists
+send "docker stop juice6 2>/dev/null; docker rm juice6 2>/dev/null\r"
+expect "root@*"
+
+# Create new juice6 container
+send "docker run -d --name juice6 -p 3006:3000 --restart unless-stopped bkimminich/juice-shop:latest\r"
+expect "root@*"
+
+# Verify it's running
+send "docker ps | grep juice6\r"
+expect "root@*"
+
+# Test local access
+send "curl -I http://localhost:3006\r"
+expect "root@*"
+
+send "exit\r"
+expect eof

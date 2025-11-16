@@ -1,0 +1,31 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+# Connect to MySQL and check the users table structure
+send "mysql -u root -p'rootpassword' ctf_db\r"
+expect "mysql>"
+
+send "DESCRIBE users;\r"
+expect "mysql>"
+
+send "SELECT username, email, email_verified FROM users LIMIT 5;\r"
+expect "mysql>"
+
+send "exit\r"
+expect "# "
+
+send "echo 'Database structure checked'\r"
+expect "# "
+
+send "exit\r"
+expect eof

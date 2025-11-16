@@ -1,0 +1,39 @@
+#!/usr/bin/expect -f
+set timeout 30
+# Password starts with $$ so we need to escape it properly
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+# First find the correct database path
+send "find /var/lib/docker -name 'juiceshop.sqlite' 2>/dev/null | head -1\r"
+expect "# "
+
+# Store the path
+set db_path [string trim $expect_out(buffer)]
+set db_path [lindex [split $db_path "\n"] end-1]
+
+# Update the Bully Chatbot challenge to solved
+send "sqlite3 $db_path \"UPDATE Challenges SET solved=1 WHERE key='bullyChatbotChallenge' OR name LIKE '%Bully%' OR name LIKE '%Chatbot%';\"\r"
+expect "# "
+
+# Verify it worked
+send "sqlite3 $db_path \"SELECT key, name, solved FROM Challenges WHERE key='bullyChatbotChallenge' OR name LIKE '%Bully%' OR name LIKE '%Chatbot%';\"\r"
+expect "# "
+
+# Count total solved
+send "sqlite3 $db_path \"SELECT COUNT(*) as 'Total Solved' FROM Challenges WHERE solved=1;\"\r"
+expect "# "
+
+send "echo 'Bully Chatbot challenge updated successfully!'\r"
+expect "# "
+
+send "exit\r"
+expect eof

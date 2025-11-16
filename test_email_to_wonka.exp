@@ -1,0 +1,66 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "cd /var/www/ctf-platform/\r"
+expect "# "
+
+# Create a simple PHP script to send a test email
+send "cat > test_email.php << 'PHPEND'\r"
+send "<?php\r"
+send "\\\$to = 'wonkastocks@gmail.com';\r"
+send "\\\$subject = 'WonkaTech CTF Platform - Test Email';\r"
+send "\\\$message = \"Hello,\\n\\n\";\r"
+send "\\\$message .= \"This is a test email from the WonkaTech CTF Platform.\\n\\n\";\r"
+send "\\\$message .= \"If you receive this email, it means the email system is working correctly.\\n\\n\";\r"
+send "\\\$message .= \"You can use the platform to:\\n\";\r"
+send "\\\$message .= \"- Register new users\\n\";\r"
+send "\\\$message .= \"- Receive email verification links\\n\";\r"
+send "\\\$message .= \"- Resend verification emails if needed\\n\\n\";\r"
+send "\\\$message .= \"Platform URL: https://wonkatech.org\\n\\n\";\r"
+send "\\\$message .= \"Best regards,\\n\";\r"
+send "\\\$message .= \"WonkaTech CTF Team\";\r"
+send "\r"
+send "\\\$headers = \"From: noreply@wonkatech.org\\r\\n\";\r"
+send "\\\$headers .= \"Reply-To: noreply@wonkatech.org\\r\\n\";\r"
+send "\\\$headers .= \"X-Mailer: PHP/\" . phpversion();\r"
+send "\r"
+send "if (mail(\\\$to, \\\$subject, \\\$message, \\\$headers)) {\r"
+send "    echo \"Test email sent successfully to wonkastocks@gmail.com\\n\";\r"
+send "} else {\r"
+send "    echo \"Failed to send test email\\n\";\r"
+send "}\r"
+send "?>\r"
+send "PHPEND\r"
+expect "# "
+
+# Run the test email script
+send "php test_email.php\r"
+expect "# "
+
+# Clean up
+send "rm test_email.php\r"
+expect "# "
+
+# Check mail queue to see if email is in transit
+send "mailq\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo 'Test email sent to wonkastocks@gmail.com'\r"
+expect "# "
+send "echo 'Please check your inbox (and spam folder).'\r"
+expect "# "
+
+send "exit\r"
+expect eof

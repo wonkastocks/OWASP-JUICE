@@ -1,0 +1,108 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect "# "
+
+# Check PHP error log
+send "tail -20 /var/log/apache2/error.log | grep logintest\r"
+expect "# "
+
+# Create a very simple working logintest.php
+send "cat > /var/www/html/logintest.php << 'ENDFILE'\r"
+send "<?php\r"
+send "session_start();\r"
+send "error_reporting(E_ALL);\r"
+send "ini_set('display_errors', 1);\r"
+send "\r"
+send "// Database connection\r"
+send "\\\$conn = new mysqli('localhost', 'root', '', 'wallys_monkey_parts');\r"
+send "\r"
+send "if (\\\$conn->connect_error) {\r"
+send "    die('Database connection failed');\r"
+send "}\r"
+send "\r"
+send "\\\$message = '';\r"
+send "\r"
+send "if (\\\$_SERVER['REQUEST_METHOD'] == 'POST') {\r"
+send "    \\\$user = \\\$_POST['username'] ?? '';\r"
+send "    \\\$pass = \\\$_POST['password'] ?? '';\r"
+send "    \r"
+send "    // Vulnerable query\r"
+send "    \\\$sql = \"SELECT * FROM users WHERE username = '\\\$user' AND password = MD5('\\\$pass')\";\r"
+send "    \\\$result = \\\$conn->query(\\\$sql);\r"
+send "    \r"
+send "    if (\\\$result && \\\$result->num_rows > 0) {\r"
+send "        \\\$row = \\\$result->fetch_assoc();\r"
+send "        \\\$message = 'SUCCESS: Logged in as ' . \\\$row['username'] . ' (Admin: ' . (\\\$row['is_admin'] ? 'YES' : 'NO') . ')';\r"
+send "    } else {\r"
+send "        \\\$message = 'Login failed';\r"
+send "    }\r"
+send "}\r"
+send "?>\r"
+send "<!DOCTYPE html>\r"
+send "<html>\r"
+send "<head>\r"
+send "    <title>Login Test</title>\r"
+send "    <style>\r"
+send "        body { font-family: Arial; background: #eee; padding: 50px; }\r"
+send "        .box { background: white; max-width: 400px; margin: 0 auto; padding: 30px; border-radius: 5px; }\r"
+send "        input { width: 100%; padding: 10px; margin: 10px 0; box-sizing: border-box; }\r"
+send "        button { width: 100%; padding: 10px; background: #4CAF50; color: white; border: none; cursor: pointer; }\r"
+send "        .message { padding: 10px; margin: 10px 0; background: #f0f0f0; }\r"
+send "    </style>\r"
+send "</head>\r"
+send "<body>\r"
+send "    <div class='box'>\r"
+send "        <h2>Login</h2>\r"
+send "        <?php if (\\\$message): ?>\r"
+send "            <div class='message'><?= htmlspecialchars(\\\$message) ?></div>\r"
+send "        <?php endif; ?>\r"
+send "        <form method='POST'>\r"
+send "            <input type='text' name='username' placeholder='Username' required>\r"
+send "            <input type='password' name='password' placeholder='Password'>\r"
+send "            <button type='submit'>Login</button>\r"
+send "        </form>\r"
+send "    </div>\r"
+send "</body>\r"
+send "</html>\r"
+send "ENDFILE\r"
+
+expect "# "
+
+# Set permissions
+send "chown www-data:www-data /var/www/html/logintest.php\r"
+expect "# "
+
+send "chmod 644 /var/www/html/logintest.php\r"
+expect "# "
+
+# Test with curl to see if it works
+send "curl -s http://localhost/logintest.php | grep -c Login\r"
+expect "# "
+
+# Restart Apache
+send "systemctl restart apache2\r"
+expect "# "
+
+send "echo 'Simple logintest.php created!'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\nSimple logintest.php deployed!"

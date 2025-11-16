@@ -1,0 +1,50 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect "# "
+
+# More aggressive removal - delete everything between demo-info div tags
+send "sed -i '/<div class=\"demo-info\">/,/<\\/div>/d' /var/www/html/login.php\r"
+expect "# "
+
+# Use awk to remove the section
+send "awk '/<div class=\"demo-info\">/{flag=1} /<\\/div>/{if(flag) flag=0; next} !flag' /var/www/html/login.php > /tmp/login_clean.php && mv /tmp/login_clean.php /var/www/html/login.php\r"
+expect "# "
+
+# Fix permissions
+send "chown www-data:www-data /var/www/html/login.php\r"
+expect "# "
+
+# Clear any PHP cache
+send "find /var/cache -name '*.php' -delete 2>/dev/null\r"
+expect "# "
+
+# Restart everything
+send "systemctl restart apache2\r"
+expect "# "
+send "systemctl restart php8.1-fpm 2>/dev/null || systemctl restart php8.0-fpm 2>/dev/null || systemctl restart php7.4-fpm 2>/dev/null\r"
+expect "# "
+
+# Check if it's gone
+send "grep -c 'demo-info' /var/www/html/login.php\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\nComplete removal done!"

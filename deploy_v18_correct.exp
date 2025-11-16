@@ -1,0 +1,36 @@
+#!/usr/bin/expect -f
+
+set timeout 300
+
+# Copy script
+spawn scp /Users/walterbarr_1/sql-injection-lab/upgrade_to_v18_correct.sh root@66.42.93.220:/tmp/
+expect {
+    "password:" {
+        send "Ocean4Waves\r"
+        exp_continue
+    }
+    "100%" {
+        puts "\n✅ Script copied"
+    }
+    timeout {
+        puts "\n❌ Timeout"
+        exit 1
+    }
+}
+
+# Run upgrade
+spawn ssh root@66.42.93.220 "bash /tmp/upgrade_to_v18_correct.sh"
+expect {
+    "password:" {
+        send "Ocean4Waves\r"
+        exp_continue
+    }
+    "Upgrade to v18.0.0 Complete!" {
+        puts "\n✅ Successfully upgraded to v18!"
+    }
+    timeout {
+        puts "\n⚠️ Check server directly"
+    }
+}
+
+expect eof

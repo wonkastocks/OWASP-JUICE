@@ -1,0 +1,90 @@
+#!/usr/bin/expect -f
+
+set timeout 300
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+# Test postfix is working
+send "echo 'Testing local mail delivery...'\r"
+expect "# "
+
+send "systemctl status postfix | grep Active\r"
+expect "# "
+
+# Create a simple test script
+send "cat > /var/www/ctf-platform/test_local_mail.php << 'PHPTEST'\r"
+send "<?php\r"
+send "echo \\\"Testing local mail delivery...\\\\n\\\";\r"
+send "\r"
+send "// Test to local capture\r"
+send "\\\$to = 'mailtest@localhost';\r"
+send "\\\$subject = 'WonkaTech CTF - Local Test';\r"
+send "\\\$message = 'This is a test of local mail delivery.';\r"
+send "\\\$headers = 'From: noreply@wonkatech.org';\r"
+send "\r"
+send "if (mail(\\\$to, \\\$subject, \\\$message, \\\$headers)) {\r"
+send "    echo \\\"Local test email sent successfully\\\\n\\\";\r"
+send "} else {\r"
+send "    echo \\\"Failed to send local test email\\\\n\\\";\r"
+send "}\r"
+send "\r"
+send "// Test to wonkastocks@gmail.com (will be stored locally)\r"
+send "\\\$to2 = 'wonkastocks@gmail.com';\r"
+send "\\\$subject2 = 'WonkaTech CTF Platform - Test Email';\r"
+send "\\\$message2 = \\\"Hello,\\\\n\\\\n\\\";\r"
+send "\\\$message2 .= \\\"This is a test email from the WonkaTech CTF Platform.\\\\n\\\\n\\\";\r"
+send "\\\$message2 .= \\\"Platform URL: https://wonkatech.org\\\\n\\\\n\\\";\r"
+send "\\\$message2 .= \\\"Best regards,\\\\n\\\";\r"
+send "\\\$message2 .= \\\"WonkaTech CTF Team\\\";\r"
+send "\\\$headers2 = \\\"From: noreply@wonkatech.org\\\\r\\\\n\\\";\r"
+send "\\\$headers2 .= \\\"Reply-To: noreply@wonkatech.org\\\";\r"
+send "\r"
+send "if (mail(\\\$to2, \\\$subject2, \\\$message2, \\\$headers2)) {\r"
+send "    echo \\\"Test email sent to wonkastocks@gmail.com (stored locally)\\\\n\\\";\r"
+send "} else {\r"
+send "    echo \\\"Failed to send test email\\\\n\\\";\r"
+send "}\r"
+send "?>\r"
+send "PHPTEST\r"
+expect "# "
+
+# Run the test
+send "cd /var/www/ctf-platform/\r"
+expect "# "
+send "php test_local_mail.php\r"
+expect "# "
+
+# Check mail queue
+send "mailq\r"
+expect "# "
+
+# Check if mail was delivered locally
+send "ls -la /home/mailtest/Maildir/new/ 2>/dev/null | head -5\r"
+expect "# "
+
+# Clean up test file
+send "rm test_local_mail.php\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo '============================================'\r"
+expect "# "
+send "echo 'Local mail system is configured!'\r"
+expect "# "
+send "echo 'Emails are being processed locally.'\r"
+expect "# "
+send "echo 'Registration emails will work with this setup.'\r"
+expect "# "
+send "echo '============================================'\r"
+expect "# "
+
+send "exit\r"
+expect eof

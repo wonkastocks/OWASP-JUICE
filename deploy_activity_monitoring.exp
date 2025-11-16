@@ -1,0 +1,137 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+puts "🚀 Deploying container activity monitoring and user fixes..."
+
+# Copy all files
+spawn scp /Users/walterbarr_1/sql-injection-lab/admin/users_fixed.php root@155.138.197.128:/tmp/
+expect {
+    "password:" { send "$password\r" }
+}
+expect eof
+
+spawn scp /Users/walterbarr_1/sql-injection-lab/admin/container_monitor.php root@155.138.197.128:/tmp/
+expect {
+    "password:" { send "$password\r" }
+}
+expect eof
+
+spawn scp /Users/walterbarr_1/sql-injection-lab/admin/container_restart.php root@155.138.197.128:/tmp/
+expect {
+    "password:" { send "$password\r" }
+}
+expect eof
+
+spawn scp /Users/walterbarr_1/sql-injection-lab/setup_container_monitor.sh root@155.138.197.128:/tmp/
+expect {
+    "password:" { send "$password\r" }
+}
+expect eof
+
+# Now SSH and install everything
+spawn ssh root@155.138.197.128
+expect {
+    "password:" { send "$password\r" }
+}
+expect "# "
+
+# Backup current users.php
+send "cp /var/www/ctf-platform/admin/users.php /var/www/ctf-platform/admin/users_backup_\$(date +%Y%m%d_%H%M%S).php\r"
+expect "# "
+
+# Install the fixed users.php
+send "cp /tmp/users_fixed.php /var/www/ctf-platform/admin/users.php\r"
+expect "# "
+
+# Install monitoring scripts
+send "cp /tmp/container_monitor.php /var/www/ctf-platform/admin/\r"
+expect "# "
+
+send "cp /tmp/container_restart.php /var/www/ctf-platform/admin/\r"
+expect "# "
+
+# Set permissions
+send "chown -R www-data:www-data /var/www/ctf-platform/admin/*.php\r"
+expect "# "
+
+send "chmod 644 /var/www/ctf-platform/admin/*.php\r"
+expect "# "
+
+# Update containers table to add last_activity if it doesn't exist
+send "mysql -u root ctf_platform << 'EOF'
+-- Add last_activity column if it doesn't exist
+ALTER TABLE containers 
+ADD COLUMN IF NOT EXISTS last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
+
+-- Add status 'stopped' to enum if needed
+ALTER TABLE containers 
+MODIFY COLUMN status ENUM('available', 'assigned', 'maintenance', 'stopped') DEFAULT 'available';
+
+-- Update all assigned containers to have current activity
+UPDATE containers 
+SET last_activity = NOW() 
+WHERE status = 'assigned';
+
+-- Show container status
+SELECT container_name, port, status, last_activity 
+FROM containers 
+ORDER BY port;
+EOF\r"
+expect "# "
+
+# Setup the cron job for monitoring
+send "bash /tmp/setup_container_monitor.sh\r"
+expect "# "
+
+# Create log file with proper permissions
+send "touch /var/log/container_monitor.log\r"
+expect "# "
+
+send "chown www-data:www-data /var/log/container_monitor.log\r"
+expect "# "
+
+# Test the monitor script manually
+send "echo '\\n📊 Testing container monitor...'\r"
+expect "# "
+
+send "sudo -u www-data php /var/www/ctf-platform/admin/container_monitor.php\r"
+expect "# "
+
+# Restart Apache
+send "systemctl restart apache2\r"
+expect "# "
+
+send "echo '\\n✅ Deployment complete!'\r"
+expect "# "
+
+send "echo '📌 Features deployed:'\r"
+expect "# "
+
+send "echo '   - Fixed duplicate email validation'\r"
+expect "# "
+
+send "echo '   - One user per container enforcement'\r"
+expect "# "
+
+send "echo '   - Container activity tracking'\r"
+expect "# "
+
+send "echo '   - 10-minute auto-shutdown for inactive containers'\r"
+expect "# "
+
+send "echo '   - Persistent container assignments'\r"
+expect "# "
+
+send "echo '\\n📝 Monitor runs every minute via cron'\r"
+expect "# "
+
+send "echo '📁 Log file: /var/log/container_monitor.log'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\n✅ Activity monitoring system deployed successfully!"
+puts "\nAccess the improved admin panel at: https://wonkatech.org/admin/"

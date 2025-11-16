@@ -1,0 +1,31 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+# Check what's listening on port 80
+send "netstat -tlnp | grep :80\r"
+expect "# "
+
+# Check Apache status
+send "systemctl status apache2 | head -10\r"
+expect "# "
+
+# Check what's being served
+send "curl -s http://localhost/ | head -20\r"
+expect "# "
+
+# Check Apache sites
+send "ls -la /etc/apache2/sites-enabled/\r"
+expect "# "
+
+send "exit\r"
+expect eof

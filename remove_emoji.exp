@@ -1,0 +1,36 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect "# "
+
+# Use perl to remove the emoji
+send "perl -i -pe 's/\\x{1F435}\\s*//g' /var/www/html/login.php\r"
+expect "# "
+
+# Alternative: replace the whole h1 tag
+send "sed -i 's/<h1>.*Login.*<\\/h1>/<h1>Login<\\/h1>/g' /var/www/html/login.php\r"
+expect "# "
+
+# Restart Apache
+send "systemctl restart apache2\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\nEmoji removed!"

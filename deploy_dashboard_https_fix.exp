@@ -1,0 +1,187 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+puts "🔧 Deploying HTTPS fix for user dashboard..."
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" { send "$password\r" }
+}
+expect "# "
+
+# First, find and backup the dashboard/login files
+send "echo '📁 Finding dashboard and login files...'\r"
+expect "# "
+
+send "find /var/www -name 'dashboard.php' -o -name 'login.php' -o -name 'index.php' | grep -E '(dashboard|login|index)' | head -10\r"
+expect "# "
+
+# Check the main registration platform files
+send "ls -la /var/www/ctf-platform/*.php | head -10\r"
+expect "# "
+
+# Fix the dashboard.php file if it exists
+send "if \[ -f /var/www/ctf-platform/dashboard.php \]; then cp /var/www/ctf-platform/dashboard.php /var/www/ctf-platform/dashboard.php.backup.\$(date +%Y%m%d_%H%M%S); fi\r"
+expect "# "
+
+# Add HTTPS URL generation function to dashboard
+send "cat >> /var/www/ctf-platform/dashboard.php << 'EOFFIX'
+
+<script>
+// Auto-redirect to HTTPS URLs for Juice Shop instances
+document.addEventListener('DOMContentLoaded', function() {
+    // Find all links containing port 3001-3020
+    var links = document.querySelectorAll('a\[href*=\":30\"\]');
+    links.forEach(function(link) {
+        var href = link.href;
+        // Check if it's a Juice Shop port
+        var portMatch = href.match(/:30(\\d{2})/);
+        if (portMatch) {
+            var portSuffix = portMatch\[1\];
+            var port = 3000 + parseInt(portSuffix);
+            if (port >= 3001 && port <= 3020) {
+                var instanceNum = port - 3000;
+                var httpsUrl = 'https://juice' + instanceNum + '.wonkatech.org';
+                link.href = httpsUrl;
+                link.textContent = 'Launch Instance (HTTPS)';
+                link.target = '_blank';
+            }
+        }
+    });
+});
+</script>
+EOFFIX\r"
+expect "# "
+
+# Fix login.php to redirect to HTTPS URLs after login
+send "if \[ -f /var/www/ctf-platform/login.php \]; then\r"
+expect "# "
+
+send "  sed -i 's|http://155.138.197.128:\\(\[0-9\]*\\)|<?php echo \"https://juice\" . (\\1 - 3000) . \".wonkatech.org\"; ?>|g' /var/www/ctf-platform/login.php 2>/dev/null || echo 'No direct URLs found'\r"
+expect "# "
+
+send "fi\r"
+expect "# "
+
+# Check if there's a process_login.php or similar
+send "ls -la /var/www/ctf-platform/*login*.php 2>/dev/null\r"
+expect "# "
+
+# Create a redirect helper PHP file
+send "cat > /var/www/ctf-platform/get_container_url.php << 'EOFHELPER'
+<?php
+session_start();
+require_once 'config.php';
+
+function getContainerHTTPSUrl(\$userId) {
+    \$conn = getDBConnection();
+    
+    // Get user's assigned container
+    \$sql = \"SELECT c.port, c.container_name, c.container_url 
+            FROM containers c 
+            WHERE c.assigned_to = ? 
+            LIMIT 1\";
+    
+    \$stmt = \$conn->prepare(\$sql);
+    \$stmt->bind_param(\"i\", \$userId);
+    \$stmt->execute();
+    \$result = \$stmt->get_result();
+    
+    if (\$container = \$result->fetch_assoc()) {
+        \$port = \$container\['port'\];
+        if (\$port >= 3001 && \$port <= 3020) {
+            \$instanceNum = \$port - 3000;
+            return \"https://juice{\$instanceNum}.wonkatech.org\";
+        }
+    }
+    
+    return null;
+}
+
+// If called directly, return JSON
+if (isset(\$_GET\['user_id'\]) || isset(\$_SESSION\['user_id'\])) {
+    \$userId = \$_GET\['user_id'\] ?? \$_SESSION\['user_id'\];
+    \$url = getContainerHTTPSUrl(\$userId);
+    
+    if (\$url) {
+        header('Content-Type: application/json');
+        echo json_encode(\['success' => true, 'url' => \$url\]);
+    } else {
+        header('Content-Type: application/json');
+        echo json_encode(\['success' => false, 'message' => 'No container assigned'\]);
+    }
+}
+?>
+EOFHELPER\r"
+expect "# "
+
+# Set permissions
+send "chown www-data:www-data /var/www/ctf-platform/*.php\r"
+expect "# "
+
+send "chmod 644 /var/www/ctf-platform/*.php\r"
+expect "# "
+
+# Update the main index/landing page if it exists
+send "if \[ -f /var/www/html/index.php \]; then\r"
+expect "# "
+
+send "  echo '\\n<!-- HTTPS Redirect for Containers -->' >> /var/www/html/index.php\r"
+expect "# "
+
+send "  echo '<script>' >> /var/www/html/index.php\r"
+expect "# "
+
+send "  echo 'function launchContainer(port) {' >> /var/www/html/index.php\r"
+expect "# "
+
+send "  echo '  if (port >= 3001 && port <= 3020) {' >> /var/www/html/index.php\r"
+expect "# "
+
+send "  echo '    var instanceNum = port - 3000;' >> /var/www/html/index.php\r"
+expect "# "
+
+send "  echo '    window.open(\"https://juice\" + instanceNum + \".wonkatech.org\", \"_blank\");' >> /var/www/html/index.php\r"
+expect "# "
+
+send "  echo '  }' >> /var/www/html/index.php\r"
+expect "# "
+
+send "  echo '}' >> /var/www/html/index.php\r"
+expect "# "
+
+send "  echo '</script>' >> /var/www/html/index.php\r"
+expect "# "
+
+send "fi\r"
+expect "# "
+
+# Test the container URL helper
+send "echo '\\n🧪 Testing container URL helper:'\r"
+expect "# "
+
+send "curl -s 'http://localhost/ctf-platform/get_container_url.php?user_id=3' | python3 -m json.tool 2>/dev/null || echo 'No container assigned for user 3'\r"
+expect "# "
+
+# Restart Apache
+send "systemctl restart apache2\r"
+expect "# "
+
+send "echo '\\n✅ Dashboard HTTPS fix deployed!'\r"
+expect "# "
+
+send "echo '\\n📌 Users will now be redirected to:'\r"
+expect "# "
+
+send "echo '   - https://juice1.wonkatech.org through juice20.wonkatech.org'\r"
+expect "# "
+
+send "echo '   - Instead of http://IP:port'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\n✅ User dashboard fixed to use HTTPS URLs!"

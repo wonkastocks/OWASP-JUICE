@@ -1,0 +1,60 @@
+#!/usr/bin/expect -f
+set timeout 300
+log_user 1
+
+# Password with double dollar
+set pass {\$\$R00tbeer02}
+
+puts "========================================="
+puts "RESTORING DOCKER JUICE SHOP SETUP"
+puts "========================================="
+
+# Copy restore script
+puts "\nCopying restore script..."
+spawn scp /Users/walterbarr_1/sql-injection-lab/restore_docker_juice.sh root@155.138.197.128:/tmp/
+expect {
+    "yes/no" {
+        send "yes\r"
+        exp_continue
+    }
+    "password:" {
+        send "$pass\r"
+        expect eof
+    }
+}
+
+# Execute restore script
+puts "\nExecuting restore script..."
+spawn ssh root@155.138.197.128 "bash /tmp/restore_docker_juice.sh"
+expect {
+    "password:" {
+        send "$pass\r"
+        expect {
+            "RESTORATION COMPLETE" {
+                puts "\n✅ Docker setup restored!"
+            }
+            eof
+        }
+    }
+}
+
+puts "\n========================================="
+puts "CHECKING CLOUDFLARE TUNNEL STATUS"
+puts "========================================="
+
+# Check if tunnel is running
+spawn ssh root@155.138.197.128 "systemctl status cloudflared | head -20"
+expect {
+    "password:" {
+        send "$pass\r"
+        expect eof
+    }
+}
+
+puts "\n========================================="
+puts "✅ RESTORATION COMPLETE!"
+puts "========================================="
+puts "\nYour Juice Shop instances should be available at:"
+puts "  https://juice1.wonkatech.org"
+puts "  https://juice2.wonkatech.org"
+puts "  https://juice3.wonkatech.org"

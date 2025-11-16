@@ -1,0 +1,98 @@
+#!/usr/bin/expect -f
+
+set timeout 60
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+# Update dashboard.php to use direct IP for instance URLs
+# Since Cloudflare can't proxy ports 3001-3020, we must use direct IP
+send "echo 'Updating dashboard.php for direct instance access...'\r"
+expect "# "
+
+# Now update the actual dashboard.php file
+send "sed -i \"s|\\\\\\$instanceUrl = 'https://wonkatech.org:' . \\\\\\$port;|\\\\\\$instanceUrl = 'http://155.138.197.128:' . \\\\\\$port;|\" /var/www/ctf-platform/dashboard.php\r"
+expect "# "
+
+# Update all form actions and links to use relative paths
+send "cd /var/www/ctf-platform/\r"
+expect "# "
+
+# Fix index.php to use relative paths
+send "sed -i 's|href=\"https://wonkatech.org/|href=\"/|g' index.php\r"
+expect "# "
+send "sed -i 's|action=\"https://wonkatech.org/|action=\"/|g' index.php\r"
+expect "# "
+
+# Fix register.php
+send "sed -i 's|href=\"https://wonkatech.org/|href=\"/|g' register.php\r"
+expect "# "
+send "sed -i 's|action=\"https://wonkatech.org/|action=\"/|g' register.php\r"
+expect "# "
+
+# Fix login.php
+send "sed -i 's|href=\"https://wonkatech.org/|href=\"/|g' login.php\r"
+expect "# "
+send "sed -i 's|action=\"https://wonkatech.org/|action=\"/|g' login.php\r"
+expect "# "
+
+# Fix verify.php
+send "sed -i 's|href=\"https://wonkatech.org/|href=\"/|g' verify.php\r"
+expect "# "
+
+# Update Apache to properly handle Cloudflare headers
+send "cat > /etc/apache2/sites-available/default.conf << 'EOF'\r"
+send "<VirtualHost *:80>\r"
+send "    ServerName wonkatech.org\r"
+send "    ServerAlias www.wonkatech.org\r"
+send "    ServerAlias 155.138.197.128\r"
+send "    DocumentRoot /var/www/ctf-platform\r"
+send "    \r"
+send "    # Trust Cloudflare's forwarded headers\r"
+send "    RemoteIPHeader CF-Connecting-IP\r"
+send "    \r"
+send "    # Set HTTPS environment variable based on Cloudflare header\r"
+send "    SetEnvIf X-Forwarded-Proto https HTTPS=on\r"
+send "    \r"
+send "    <Directory /var/www/ctf-platform>\r"
+send "        Options Indexes FollowSymLinks\r"
+send "        AllowOverride All\r"
+send "        Require all granted\r"
+send "    </Directory>\r"
+send "    \r"
+send "    # PHP handling\r"
+send "    <FilesMatch \\.php$>\r"
+send "        SetHandler application/x-httpd-php\r"
+send "    </FilesMatch>\r"
+send "    \r"
+send "    DirectoryIndex index.php index.html\r"
+send "    \r"
+send "    ErrorLog /var/log/apache2/error.log\r"
+send "    CustomLog /var/log/apache2/access.log combined\r"
+send "</VirtualHost>\r"
+send "EOF\r"
+expect "# "
+
+# Enable remoteip module for Cloudflare headers
+send "a2enmod remoteip\r"
+expect "# "
+
+# Reload Apache
+send "systemctl reload apache2\r"
+expect "# "
+
+# Test the configuration
+send "curl -s -I http://localhost/ | head -3\r"
+expect "# "
+
+send "echo 'Cloudflare SSL fix complete!'\r"
+expect "# "
+
+send "exit\r"
+expect eof

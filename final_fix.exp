@@ -1,0 +1,45 @@
+#!/usr/bin/expect -f
+
+set timeout 60
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+# Stop the conflicting nginx container
+send "docker stop juice-nginx\r"
+expect "# "
+
+# Create a simpler Apache config
+send "cat > /etc/apache2/sites-available/juiceshop.conf << 'EOF'\r"
+send "<VirtualHost *:80>\r"
+send "    ServerName 155.138.197.128\r"
+send "    DocumentRoot /var/www/html\r"
+send "\r"
+send "    <Directory /var/www/html>\r"
+send "        Options Indexes FollowSymLinks\r"
+send "        AllowOverride All\r"
+send "        Require all granted\r"
+send "    </Directory>\r"
+send "\r"
+send "    ErrorLog /var/log/apache2/error.log\r"
+send "    CustomLog /var/log/apache2/access.log combined\r"
+send "</VirtualHost>\r"
+send "EOF\r"
+expect "# "
+
+# Reload Apache
+send "systemctl reload apache2\r"
+expect "# "
+
+# Test
+send "curl -s http://localhost/ | grep -o '<title>.*</title>'\r"
+expect "# "
+
+send "exit\r"
+expect eof

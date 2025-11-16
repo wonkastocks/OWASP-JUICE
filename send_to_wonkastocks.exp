@@ -1,0 +1,79 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+# Copy test script
+spawn scp /tmp/test_to_wonkastocks.php root@155.138.197.128:/tmp/
+expect {
+    "password:" {
+        send "$password\r"
+        expect "100%"
+    }
+}
+
+# SSH and send test email
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "echo '================================================'\r"
+expect "# "
+send "echo 'SENDING TEST EMAIL TO WONKASTOCKS@GMAIL.COM'\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+
+# Run the test
+send "php /tmp/test_to_wonkastocks.php\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+
+# Check mail queue
+send "echo 'Checking mail queue:'\r"
+expect "# "
+send "mailq\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+
+# Check mail logs for delivery status
+send "echo 'Checking delivery status:'\r"
+expect "# "
+send "tail -10 /var/log/mail.log | grep -i 'wonkastocks\\|status=sent'\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo 'EMAIL SENT!'\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'Email details:'\r"
+expect "# "
+send "echo '• Sent to: wonkastocks@gmail.com'\r"
+expect "# "
+send "echo '• Reply-To: wonkatech@gmail.com'\r"
+expect "# "
+send "echo '• From: noreply@wonkatech.org (via Gmail)'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'When you reply to this email, it will go to wonkatech@gmail.com'\r"
+expect "# "
+
+send "exit\r"
+expect eof

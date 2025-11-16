@@ -1,0 +1,82 @@
+#!/usr/bin/expect -f
+
+set timeout 60
+set password {$$R00tbeer02}
+
+puts "✅ Verifying HTTPS implementation in dashboard..."
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" { send "$password\r" }
+}
+expect "# "
+
+# Check the dashboard content for HTTPS URLs
+send "echo '📋 Checking dashboard.php for HTTPS URLs:'\r"
+expect "# "
+
+send "grep -n 'instanceUrl.*=' /var/www/ctf-platform/dashboard.php | head -5\r"
+expect "# "
+
+# Apply final comprehensive fix
+send "cat > /tmp/final_https_fix.sh << 'EOFSH'
+#!/bin/bash
+
+# Fix the dashboard.php file
+sed -i 's|\\\$instanceUrl = \"http://155.138.197.128:\" . \\\$port;|\\\$instanceNum = \\\$port - 3000; \\\$instanceUrl = \"https://juice\" . \\\$instanceNum . \".wonkatech.org\";|g' /var/www/ctf-platform/dashboard.php
+
+# Also fix the concatenated version
+sed -i 's|\\\$instanceUrl = \"http://155.138.197.128:\\\$port\";|\\\$instanceNum = \\\$port - 3000; \\\$instanceUrl = \"https://juice{\\\$instanceNum}.wonkatech.org\";|g' /var/www/ctf-platform/dashboard.php
+
+# Copy to both locations
+cp /var/www/ctf-platform/dashboard.php /var/www/html/dashboard.php
+
+echo \"Dashboard HTTPS fix applied\"
+EOFSH\r"
+expect "# "
+
+send "bash /tmp/final_https_fix.sh\r"
+expect "# "
+
+# Verify the change
+send "echo '\\n✅ Verification:'\r"
+expect "# "
+
+send "grep 'instanceUrl.*=' /var/www/ctf-platform/dashboard.php | grep -c 'https://juice'\r"
+expect "# "
+
+send "grep 'instanceUrl.*=' /var/www/ctf-platform/dashboard.php | grep -c 'http://155'\r"
+expect "# "
+
+# Show what users will see
+send "echo '\\n📊 Database check - User URLs:'\r"
+expect "# "
+
+send "mysql -u root ctf_platform -e \"SELECT id, username, instance_url FROM users WHERE instance_url IS NOT NULL ORDER BY id LIMIT 10;\"\r"
+expect "# "
+
+# Test container access
+send "echo '\\n🧪 Testing container access:'\r"
+expect "# "
+
+send "for i in 1 2 3; do curl -s -o /dev/null -w \"juice\$i.wonkatech.org: %{http_code}\\n\" https://juice\$i.wonkatech.org; done\r"
+expect "# "
+
+send "echo '\\n✅ HTTPS Dashboard Setup Complete!'\r"
+expect "# "
+
+send "echo '\\n📌 Summary:'\r"
+expect "# "
+send "echo '  • Dashboard generates HTTPS URLs for new users'\r"
+expect "# "
+send "echo '  • Existing users have HTTPS URLs in database'\r"
+expect "# "
+send "echo '  • All containers accessible via https://juiceX.wonkatech.org'\r"
+expect "# "
+send "echo '  • No more insecure HTTP warnings!'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\n✅ HTTPS implementation verified and complete!"

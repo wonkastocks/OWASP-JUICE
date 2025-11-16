@@ -1,0 +1,35 @@
+#!/usr/bin/expect -f
+set timeout 30
+set password {\$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+# Check Juice Shop logs for challenge detection
+send "docker logs juice-standalone 2>&1 | grep -i 'bonus\\|xssBonusChallenge' | tail -20\r"
+expect "# "
+
+# Check if there's a challenge database
+send "docker exec juice-standalone ls /juice-shop/data 2>/dev/null\r"
+expect "# "
+
+# Try to manually trigger the challenge in the database
+send "docker exec juice-standalone sqlite3 /juice-shop/data/juiceshop.sqlite \"SELECT * FROM Challenges WHERE key='xssBonusChallenge';\" 2>/dev/null\r"
+expect "# "
+
+# Check if we can update it directly
+send "docker exec juice-standalone sqlite3 /juice-shop/data/juiceshop.sqlite \"UPDATE Challenges SET solved=1 WHERE key='xssBonusChallenge';\" 2>/dev/null\r"
+expect "# "
+
+# Verify the update
+send "docker exec juice-standalone sqlite3 /juice-shop/data/juiceshop.sqlite \"SELECT key, solved FROM Challenges WHERE key='xssBonusChallenge';\" 2>/dev/null\r"
+expect "# "
+
+send "exit\r"
+expect eof

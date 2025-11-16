@@ -1,0 +1,14 @@
+#!/usr/bin/expect -f
+set timeout 300
+
+# First copy the script
+spawn scp /Users/walterbarr_1/sql-injection-lab/install_standalone_juice.sh root@155.138.197.128:/tmp/
+expect "password:"
+send "\\$Hg5sD&8Lp@9\r"
+expect eof
+
+# Then execute it
+spawn ssh root@155.138.197.128 "bash /tmp/install_standalone_juice.sh"
+expect "password:"
+send "\\$Hg5sD&8Lp@9\r"
+interact

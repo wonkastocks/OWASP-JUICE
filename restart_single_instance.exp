@@ -1,0 +1,27 @@
+#!/usr/bin/expect -f
+
+set timeout 60
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+# Restart the single instance
+send "cd /opt/juice-shop-ctf\r"
+expect "# "
+
+send "docker-compose up -d juice-shop\r"
+expect "# "
+
+sleep 5
+
+send "docker ps\r"
+expect "# "
+
+send "exit\r"
+expect eof

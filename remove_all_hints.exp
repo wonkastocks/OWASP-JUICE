@@ -1,0 +1,64 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect "# "
+
+# Remove both CSS and HTML for demo-info
+send "sed -i '/.demo-info/,/}/d' /var/www/html/login.php\r"
+expect "# "
+
+# Remove the HTML div
+send "sed -i '/<div class=\"demo-info\">/,/<\\/div>/d' /var/www/html/login.php\r"
+expect "# "
+
+# Clean up any orphaned content
+send "sed -i '/SQL Injection Demo Lab/d' /var/www/html/login.php\r"
+expect "# "
+send "sed -i '/Valid Test Account/d' /var/www/html/login.php\r"
+expect "# "
+send "sed -i '/admin@wallys\\.com/d' /var/www/html/login.php\r"
+expect "# "
+send "sed -i '/Password: 123456/d' /var/www/html/login.php\r"
+expect "# "
+send "sed -i '/SQL Injection Tests/d' /var/www/html/login.php\r"
+expect "# "
+send "sed -i '/Database Dump/d' /var/www/html/login.php\r"
+expect "# "
+send "sed -i '/UNION SELECT/d' /var/www/html/login.php\r"
+expect "# "
+
+# Fix permissions
+send "chown www-data:www-data /var/www/html/login.php\r"
+expect "# "
+
+# Clear caches and restart
+send "rm -rf /var/cache/apache2/* 2>/dev/null\r"
+expect "# "
+send "systemctl restart apache2\r"
+expect "# "
+
+# Final check
+send "echo 'Checking for demo-info...'\r"
+expect "# "
+send "grep -c 'demo-info' /var/www/html/login.php || echo 'demo-info completely removed!'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\nAll hints removed!"

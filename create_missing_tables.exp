@@ -1,0 +1,88 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" { send "$password\r" }
+}
+expect "# "
+
+send "mysql -u root ctf_platform << 'EOF'
+-- Create audit_log table if it doesn't exist
+CREATE TABLE IF NOT EXISTS audit_log (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT,
+    action VARCHAR(100) NOT NULL,
+    details JSON,
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_user (user_id),
+    INDEX idx_action (action),
+    INDEX idx_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Create containers table if it doesn't exist
+CREATE TABLE IF NOT EXISTS containers (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    container_name VARCHAR(100) UNIQUE NOT NULL,
+    port INT UNIQUE NOT NULL,
+    user_id INT,
+    status ENUM('available', 'assigned', 'maintenance') DEFAULT 'available',
+    docker_container_id VARCHAR(64),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    assigned_at DATETIME,
+    last_health_check DATETIME,
+    INDEX idx_status (status),
+    INDEX idx_port (port)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Create challenge_progress table if it doesn't exist
+CREATE TABLE IF NOT EXISTS challenge_progress (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    challenge_name VARCHAR(255) NOT NULL,
+    challenge_category VARCHAR(100),
+    points INT DEFAULT 0,
+    completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    time_taken INT COMMENT 'Time in seconds',
+    hints_used INT DEFAULT 0,
+    UNIQUE KEY unique_user_challenge (user_id, challenge_name),
+    INDEX idx_user (user_id),
+    INDEX idx_challenge (challenge_name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Create scores table if it doesn't exist
+CREATE TABLE IF NOT EXISTS scores (
+    user_id INT PRIMARY KEY,
+    total_score INT DEFAULT 0,
+    challenges_completed INT DEFAULT 0,
+    rank INT,
+    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_score (total_score DESC),
+    INDEX idx_rank (rank)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Insert default container records if they don't exist
+INSERT IGNORE INTO containers (container_name, port, status) VALUES
+('juice-user1', 3001, 'available'),
+('juice-user2', 3002, 'available'),
+('juice-user3', 3003, 'assigned'),
+('juice-user4', 3004, 'available'),
+('juice-user5', 3005, 'available');
+
+-- Check if tables were created
+SHOW TABLES;
+EOF"
+send "\r"
+expect "# "
+
+send "echo 'Tables created successfully!'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\n✅ Database tables created successfully!"

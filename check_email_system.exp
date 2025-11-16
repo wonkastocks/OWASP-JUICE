@@ -1,0 +1,58 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+# Check mail logs for errors
+send "echo 'Checking mail logs for errors...'\r"
+expect "# "
+send "tail -30 /var/log/mail.log 2>/dev/null || tail -30 /var/log/syslog | grep -i mail\r"
+expect "# "
+
+# Check mail queue
+send "echo ''\r"
+expect "# "
+send "echo 'Checking mail queue...'\r"
+expect "# "
+send "mailq\r"
+expect "# "
+
+# Check sendmail configuration
+send "echo ''\r"
+expect "# "
+send "echo 'Checking sendmail status...'\r"
+expect "# "
+send "systemctl status sendmail --no-pager | head -10\r"
+expect "# "
+
+# Check if port 25 is blocked
+send "echo ''\r"
+expect "# "
+send "echo 'Checking if port 25 is open...'\r"
+expect "# "
+send "netstat -tuln | grep :25\r"
+expect "# "
+
+# Test direct SMTP connection
+send "echo ''\r"
+expect "# "
+send "echo 'Testing SMTP connection to Gmail...'\r"
+expect "# "
+send "timeout 5 telnet smtp.gmail.com 25 2>&1 | head -5\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo 'Diagnosis complete. Checking for common issues...'\r"
+expect "# "
+
+send "exit\r"
+expect eof

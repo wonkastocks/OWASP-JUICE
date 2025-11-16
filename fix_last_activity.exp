@@ -1,0 +1,58 @@
+#!/usr/bin/expect -f
+
+set timeout 60
+set password {$$R00tbeer02}
+
+puts "🔧 Fixing last_activity column in containers table..."
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" { send "$password\r" }
+}
+expect "# "
+
+# Fix the database table
+send "mysql -u root ctf_platform\r"
+expect "mysql> "
+
+# First check if column exists
+send "SHOW COLUMNS FROM containers LIKE 'last_activity';\r"
+expect "mysql> "
+
+# Add the column
+send "ALTER TABLE containers ADD COLUMN last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;\r"
+expect "mysql> "
+
+# Verify it was added
+send "DESCRIBE containers;\r"
+expect "mysql> "
+
+# Update the status enum to include 'stopped'
+send "ALTER TABLE containers MODIFY COLUMN status ENUM('available', 'assigned', 'maintenance', 'stopped') DEFAULT 'available';\r"
+expect "mysql> "
+
+# Update all assigned containers to have current activity
+send "UPDATE containers SET last_activity = NOW() WHERE status = 'assigned';\r"
+expect "mysql> "
+
+# Show current status
+send "SELECT container_name, port, status, last_activity FROM containers ORDER BY port;\r"
+expect "mysql> "
+
+send "exit\r"
+expect "# "
+
+# Test the monitor script again
+send "echo '\\n📊 Testing container monitor...'\r"
+expect "# "
+
+send "sudo -u www-data php /var/www/ctf-platform/admin/container_monitor.php\r"
+expect "# "
+
+send "echo '\\n✅ Database fixed and monitor tested!'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\n✅ Last activity column fixed!"

@@ -1,0 +1,41 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+
+spawn ssh root@66.42.93.220
+expect "password:"
+send "Ocean4Waves\r"
+expect "root@"
+
+send "cd /opt/juice-shop\r"
+expect "root@"
+
+send "echo 'Stopping current Juice Shop...'\r"
+expect "root@"
+
+send "pkill -f 'node.*app.js'\r"
+expect "root@"
+
+send "sleep 5\r"
+expect "root@"
+
+send "echo 'Starting with unsafe config...'\r"
+expect "root@"
+
+send "NODE_ENV=unsafe nohup node build/app.js --config config/unsafe.yml > /tmp/juice-unsafe.log 2>&1 &\r"
+expect "root@"
+
+send "sleep 15\r"
+expect "root@"
+
+send "echo 'Testing if running...'\r"
+expect "root@"
+
+send "curl -I http://localhost:3000/\r"
+expect "root@"
+
+send "echo 'Juice Shop restarted with unsafe config!'\r"
+expect "root@"
+
+send "exit\r"
+expect eof

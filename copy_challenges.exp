@@ -1,0 +1,36 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+# Copy challenges text file
+spawn scp root@155.138.197.128:/tmp/juice_shop_challenges.txt /Users/walterbarr_1/sql-injection-lab/
+expect {
+    "password:" {
+        send "$password\r"
+        expect "100%"
+    }
+}
+
+# Copy CSV file
+spawn scp root@155.138.197.128:/tmp/juice_shop_challenges.csv /Users/walterbarr_1/sql-injection-lab/
+expect {
+    "password:" {
+        send "$password\r"
+        expect "100%"
+    }
+}
+
+# Copy raw JSON file
+spawn scp root@155.138.197.128:/tmp/challenges_raw.json /Users/walterbarr_1/sql-injection-lab/
+expect {
+    "password:" {
+        send "$password\r"
+        expect "100%"
+    }
+}
+
+puts "\nFiles copied successfully!"
+puts "• juice_shop_challenges.txt - Formatted text list"
+puts "• juice_shop_challenges.csv - CSV format for spreadsheets"
+puts "• challenges_raw.json - Raw JSON data"

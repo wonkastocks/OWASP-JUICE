@@ -1,0 +1,80 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+# SSH and fix the currency
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "echo 'Fixing Juice Shop currency to USD...'\r"
+expect "# "
+
+# Create a proper startup script
+send "cat > /root/start_juice_usd.sh << 'EOF'\r"
+send "#!/bin/bash\r"
+send "# Start Juice Shop containers with USD currency\r"
+send "echo 'Starting Juice Shop containers with USD currency...'\r"
+send "\r"
+send "# Start containers for each user\r"
+send "docker run -d --name juice-user1 -p 3001:3000 -e NODE_ENV=ctf -e PRODUCTS_CURRENCY=USD --restart unless-stopped bkimminich/juice-shop\r"
+send "docker run -d --name juice-user2 -p 3002:3000 -e NODE_ENV=ctf -e PRODUCTS_CURRENCY=USD --restart unless-stopped bkimminich/juice-shop\r"
+send "docker run -d --name juice-user3 -p 3003:3000 -e NODE_ENV=ctf -e PRODUCTS_CURRENCY=USD --restart unless-stopped bkimminich/juice-shop\r"
+send "docker run -d --name juice-user4 -p 3004:3000 -e NODE_ENV=ctf -e PRODUCTS_CURRENCY=USD --restart unless-stopped bkimminich/juice-shop\r"
+send "docker run -d --name juice-user5 -p 3005:3000 -e NODE_ENV=ctf -e PRODUCTS_CURRENCY=USD --restart unless-stopped bkimminich/juice-shop\r"
+send "\r"
+send "echo 'All containers started with USD currency'\r"
+send "EOF\r"
+expect "# "
+
+send "chmod +x /root/start_juice_usd.sh\r"
+expect "# "
+
+# Stop all existing containers
+send "docker stop \$(docker ps -q --filter name=juice) 2>/dev/null || true\r"
+expect "# "
+send "docker rm \$(docker ps -aq --filter name=juice) 2>/dev/null || true\r"
+expect "# "
+
+# Start containers with USD
+send "/root/start_juice_usd.sh\r"
+expect "# "
+
+# Wait for containers to start
+send "sleep 5\r"
+expect "# "
+
+# Verify they're running
+send "echo ''\r"
+expect "# "
+send "echo 'Containers running with USD:'\r"
+expect "# "
+send "docker ps --format 'table {{.Names}}\\t{{.Ports}}' | grep juice\r"
+expect "# "
+
+# Test the currency change
+send "echo ''\r"
+expect "# "
+send "echo 'Testing currency on port 3003:'\r"
+expect "# "
+send "curl -s http://localhost:3003/rest/products/1 2>/dev/null | grep -o '\"price\":\[0-9.\]*' | head -1\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo '✅ Juice Shop containers now configured with USD currency'\r"
+expect "# "
+send "echo '✅ Prices will display as \$ instead of ¤'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'Note: Clear browser cache if currency symbol still shows as ¤'\r"
+expect "# "
+
+send "exit\r"
+expect eof

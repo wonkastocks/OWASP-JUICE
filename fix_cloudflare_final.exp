@@ -1,0 +1,118 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+
+# Connect to server
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "\$\$R00tbeer02\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "\$\$R00tbeer02\r"
+    }
+}
+
+expect "root@*"
+
+# Find the correct tunnel name and credentials file
+send "ls /root/.cloudflared/*.json | head -1\r"
+expect -re {(/root/.cloudflared/([-a-z0-9]+)\.json)}
+set creds_file $expect_out(0,string)
+set tunnel_id $expect_out(2,string)
+
+expect "root@*"
+
+# Get tunnel name from cloudflared list
+send "cloudflared tunnel list 2>/dev/null | grep -v NAME | awk '{print \$1, \$2}' | head -1\r"
+expect -re {([-a-z0-9]+)\s+(\S+)}
+set actual_tunnel_id $expect_out(1,string)
+set tunnel_name $expect_out(2,string)
+
+expect "root@*"
+
+# Update config with correct tunnel info
+send "cat > /root/.cloudflared/config.yml << 'EOF'\r"
+send "tunnel: $tunnel_name\r"
+send "credentials-file: $creds_file\r"
+send "\r"
+send "ingress:\r"
+send "  # Main CTF platform\r"
+send "  - hostname: wonkatech.org\r"
+send "    service: http://localhost:80\r"
+send "  - hostname: www.wonkatech.org\r"
+send "    service: http://localhost:80\r"
+send "  \r"
+
+# Add all juice instances
+for {set i 1} {$i <= 10} {incr i} {
+    set port [expr 3000 + $i]
+    send "  - hostname: juice$i.wonkatech.org\r"
+    send "    service: http://localhost:$port\r"
+}
+
+send "  \r"
+send "  # Catch-all\r"
+send "  - service: http_status:404\r"
+send "EOF\r"
+expect "root@*"
+
+# Copy to /etc/cloudflared as well
+send "cp /root/.cloudflared/config.yml /etc/cloudflared/config.yml\r"
+expect "root@*"
+
+# Restart the service
+send "systemctl restart cloudflared\r"
+expect "root@*"
+
+send "sleep 3\r"
+expect "root@*"
+
+# Check status
+send "systemctl status cloudflared --no-pager | head -15\r"
+expect "root@*"
+
+# Now fix the PHP registration to automatically assign containers
+send "cat > /var/www/html/auto_assign_container.php << 'EOF'\r"
+send "<?php\r"
+send "function assignContainerToUser(\$username) {\r"
+send "    \$conn = new mysqli('localhost', 'ctf_user', 'Ctf_Pass123!', 'ctf_db');\r"
+send "    \r"
+send "    // Find next available container (1-10)\r"
+send "    \$used_containers = array();\r"
+send "    \$result = \$conn->query('SELECT instance_url FROM users WHERE instance_url IS NOT NULL');\r"
+send "    while(\$row = \$result->fetch_assoc()) {\r"
+send "        if(preg_match('/juice(\\d+)/', \$row['instance_url'], \$matches)) {\r"
+send "            \$used_containers[] = intval(\$matches[1]);\r"
+send "        }\r"
+send "    }\r"
+send "    \r"
+send "    // Find first available\r"
+send "    for(\$i = 1; \$i <= 10; \$i++) {\r"
+send "        if(!in_array(\$i, \$used_containers)) {\r"
+send "            \$instance_url = 'https://juice' . \$i . '.wonkatech.org';\r"
+send "            \r"
+send "            // Update user record\r"
+send "            \$stmt = \$conn->prepare('UPDATE users SET instance_url = ? WHERE username = ?');\r"
+send "            \$stmt->bind_param('ss', \$instance_url, \$username);\r"
+send "            \$stmt->execute();\r"
+send "            \r"
+send "            return \$instance_url;\r"
+send "        }\r"
+send "    }\r"
+send "    \r"
+send "    return null; // All containers in use\r"
+send "}\r"
+send "?>\r"
+send "EOF\r"
+expect "root@*"
+
+# Update willy's assignment to juice6
+send "mysql -u ctf_user -p'Ctf_Pass123!' ctf_db -e \"UPDATE users SET instance_url='https://juice6.wonkatech.org' WHERE username='willy';\"\r"
+expect "root@*"
+
+send "exit\r"
+expect eof

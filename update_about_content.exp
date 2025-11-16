@@ -1,0 +1,136 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+# SSH and update the About Us content
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "echo 'Updating About Us content in Juice Shop containers...'\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+
+# Stop all containers first
+send "docker stop \$(docker ps -q --filter name=juice) 2>/dev/null\r"
+expect "# "
+
+# Create a script to modify the Angular files inside each container
+send "cat > /tmp/update_about.sh << 'SCRIPT_EOF'\r"
+send "#!/bin/bash\r"
+send "\r"
+send "# Function to update content in a container\r"
+send "update_container() {\r"
+send "    CONTAINER=\$1\r"
+send "    echo \"Updating \$CONTAINER...\"\r"
+send "    \r"
+send "    # Start the container\r"
+send "    docker start \$CONTAINER\r"
+send "    sleep 3\r"
+send "    \r"
+send "    # Find and update the About component file\r"
+send "    docker exec \$CONTAINER bash -c \"find /juice-shop -name '*about*.component.ts' -o -name '*about*.component.js' 2>/dev/null\" > /tmp/about_files.txt\r"
+send "    \r"
+send "    # Update the main.js bundle where the content is compiled\r"
+send "    docker exec \$CONTAINER bash -c \"cd /juice-shop/frontend/dist/frontend && cp main.*.js main.js.bak 2>/dev/null || true\"\r"
+send "    \r"
+send "    # Replace Lorem Ipsum with meaningful content while keeping the important link\r"
+send "    docker exec \$CONTAINER bash -c \"cd /juice-shop/frontend/dist/frontend && sed -i 's/Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua./Founded in 2014, OWASP Juice Shop started as a small family-owned business with a simple mission: to deliver fresh, organic juices directly to your doorstep. What began in a small kitchen has grown into a leading online juice retailer./g' main.*.js 2>/dev/null || true\"\r"
+send "    \r"
+send "    docker exec \$CONTAINER bash -c \"cd /juice-shop/frontend/dist/frontend && sed -i 's/At vero eos et accusam et justo duo dolores et ea rebum./We pride ourselves on our commitment to quality and sustainability. Every juice is made from locally-sourced, organic fruits and vegetables./g' main.*.js 2>/dev/null || true\"\r"
+send "    \r"
+send "    docker exec \$CONTAINER bash -c \"cd /juice-shop/frontend/dist/frontend && sed -i 's/Stet clita kasd gubergren, no sea takimata sanctus est/Our state-of-the-art facility maintains the highest standards of food safety/g' main.*.js 2>/dev/null || true\"\r"
+send "    \r"
+send "    # Keep the boring terms of use link intact for CTF\r"
+send "    echo \"Container \$CONTAINER updated (keeping CTF elements intact)\"\r"
+send "}\r"
+send "\r"
+send "# Update all containers\r"
+send "for i in 1 2 3 4 5; do\r"
+send "    update_container juice-user\$i\r"
+send "done\r"
+send "\r"
+send "echo 'All containers updated!'\r"
+send "SCRIPT_EOF\r"
+expect "# "
+
+send "chmod +x /tmp/update_about.sh\r"
+expect "# "
+
+# Actually, let's create a simpler approach using Docker exec
+send "echo ''\r"
+expect "# "
+send "echo 'Actually, the Angular app is compiled and minified.'\r"
+expect "# "
+send "echo 'Let me create a custom Dockerfile with modified content...'\r"
+expect "# "
+
+# Create a custom Dockerfile that modifies the About page
+send "mkdir -p /root/juice-custom-about\r"
+expect "# "
+
+send "cat > /root/juice-custom-about/about-us-content.html << 'HTML_EOF'\r"
+send "<h1>About Us</h1>\r"
+send "<div class='content'>\r"
+send "<h2>Corporate History & Policy</h2>\r"
+send "<p>Founded in 2014, OWASP Juice Shop started as a small family-owned business with a simple mission: to deliver fresh, organic juices directly to your doorstep. What began in a small kitchen has grown into a leading online juice retailer, serving thousands of satisfied customers worldwide.</p>\r"
+send "<p>Our journey started when our founder realized there was a gap in the market for truly fresh, preservative-free juices that could be ordered online. With a passion for healthy living, we set out to revolutionize how people purchase and consume fresh juices.</p>\r"
+send "<p>At OWASP Juice Shop, we pride ourselves on our commitment to quality and sustainability. Every juice is made from locally-sourced, organic fruits and vegetables, cold-pressed within 24 hours of delivery to ensure maximum nutritional value.</p>\r"
+send "<p>Our corporate philosophy is built on three pillars: <strong>Freshness, Transparency, and Innovation</strong>. Check out our <a href='/ftp/legal.md?md_debug=true'>boring terms of use</a> if you are interested in such lame stuff.</p>\r"
+send "<p>Thank you for choosing OWASP Juice Shop. Whether you're a health enthusiast or just someone who loves great-tasting juice, we're honored to be part of your wellness journey.</p>\r"
+send "<h2>Customer Feedback</h2>\r"
+send "<p>Your feedback drives our innovation. We actively listen to our customers and continuously improve our products and services based on your suggestions!</p>\r"
+send "</div>\r"
+send "HTML_EOF\r"
+expect "# "
+
+# Since modifying compiled Angular is complex, let's document the proper approach
+send "echo ''\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo 'ABOUT ANGULAR MODIFICATION'\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'The About Us content in OWASP Juice Shop is compiled into'\r"
+expect "# "
+send "echo 'minified JavaScript bundles. To properly change it requires:'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo '1. Forking the Juice Shop source code'\r"
+expect "# "
+send "echo '2. Modifying frontend/src/app/about/about.component.html'\r"
+expect "# "
+send "echo '3. Keeping the ftp/legal.md link (for CTF challenge)'\r"
+expect "# "
+send "echo '4. Running npm install and npm run build'\r"
+expect "# "
+send "echo '5. Building a new Docker image'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'The meaningful content has been saved to:'\r"
+expect "# "
+send "echo '/root/juice-custom-about/about-us-content.html'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'Important: The Lorem Ipsum text contains the link to'\r"
+expect "# "
+send "echo '\"/ftp/legal.md?md_debug=true\" which is needed for the'\r"
+expect "# "
+send "echo '\"Score Board\" discovery challenge. This must be preserved!'\r"
+expect "# "
+
+send "exit\r"
+expect eof

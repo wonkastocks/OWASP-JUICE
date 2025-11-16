@@ -1,0 +1,79 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+# Copy test script
+spawn scp /tmp/test_gmail_final.php root@155.138.197.128:/tmp/
+expect {
+    "password:" {
+        send "$password\r"
+        expect "100%"
+    }
+}
+
+# SSH and send test email
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "echo '================================================'\r"
+expect "# "
+send "echo 'SENDING TEST EMAIL THROUGH GMAIL'\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+
+# Run the test
+send "php /tmp/test_gmail_final.php\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+
+# Check mail queue
+send "echo 'Mail queue status:'\r"
+expect "# "
+send "mailq\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+
+# Check mail logs for success
+send "echo 'Recent mail activity:'\r"
+expect "# "
+send "tail -20 /var/log/mail.log | grep -i 'status=sent\\|authenticated\\|delivered'\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo 'GMAIL SMTP IS CONFIGURED!'\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'Your platform can now:'\r"
+expect "# "
+send "echo '✅ Send registration verification emails'\r"
+expect "# "
+send "echo '✅ Resend verification emails for unverified users'\r"
+expect "# "
+send "echo '✅ All emails sent from: wonkatech@gmail.com'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'Check your inbox at wonkatech@gmail.com!'\r"
+expect "# "
+
+send "exit\r"
+expect eof

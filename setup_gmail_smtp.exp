@@ -1,0 +1,137 @@
+#!/usr/bin/expect -f
+
+set timeout 300
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "echo '================================================'\r"
+expect "# "
+send "echo 'SETTING UP GMAIL SMTP RELAY'\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+
+# Install necessary packages
+send "echo 'Installing required packages...'\r"
+expect "# "
+send "apt-get update\r"
+expect "# "
+send "apt-get install -y libsasl2-modules postfix\r"
+expect "# "
+
+# Stop postfix while configuring
+send "systemctl stop postfix\r"
+expect "# "
+
+# Backup current configuration
+send "cp /etc/postfix/main.cf /etc/postfix/main.cf.backup.$(date +%Y%m%d)\r"
+expect "# "
+
+# Configure postfix for Gmail relay
+send "cat > /etc/postfix/main.cf << 'EOF'\r"
+send "# Basic configuration\r"
+send "myhostname = wonkatech.org\r"
+send "mydomain = wonkatech.org\r"
+send "myorigin = \\\$mydomain\r"
+send "inet_interfaces = loopback-only\r"
+send "mydestination = \\\$myhostname, localhost.\\\$mydomain, localhost\r"
+send "mynetworks = 127.0.0.0/8\r"
+send "\r"
+send "# Gmail SMTP relay configuration\r"
+send "relayhost = [smtp.gmail.com]:587\r"
+send "smtp_use_tls = yes\r"
+send "smtp_sasl_auth_enable = yes\r"
+send "smtp_sasl_security_options = noanonymous\r"
+send "smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd\r"
+send "smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt\r"
+send "smtp_tls_security_level = encrypt\r"
+send "smtp_tls_note_starttls_offer = yes\r"
+send "\r"
+send "# Additional settings\r"
+send "smtp_generic_maps = hash:/etc/postfix/generic\r"
+send "header_size_limit = 4096000\r"
+send "EOF\r"
+expect "# "
+
+# Create password file (placeholder - needs app password)
+send "cat > /etc/postfix/sasl_passwd << 'EOF'\r"
+send "[smtp.gmail.com]:587 wonkastocks@gmail.com:YOUR_APP_PASSWORD_HERE\r"
+send "EOF\r"
+expect "# "
+
+# Create generic maps for sender rewriting
+send "cat > /etc/postfix/generic << 'EOF'\r"
+send "root@wonkatech.org wonkastocks@gmail.com\r"
+send "www-data@wonkatech.org wonkastocks@gmail.com\r"
+send "noreply@wonkatech.org wonkastocks@gmail.com\r"
+send "EOF\r"
+expect "# "
+
+# Set permissions
+send "chmod 600 /etc/postfix/sasl_passwd\r"
+expect "# "
+send "postmap /etc/postfix/sasl_passwd\r"
+expect "# "
+send "postmap /etc/postfix/generic\r"
+expect "# "
+
+# Update PHP mail configuration
+send "sed -i 's|sendmail_path.*|sendmail_path = /usr/sbin/sendmail -t -i|' /etc/php/8.1/apache2/php.ini\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo 'IMPORTANT: Gmail App Password Required!'\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'To complete setup, you need to:'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo '1. Go to: https://myaccount.google.com/apppasswords'\r"
+expect "# "
+send "echo '2. Sign in to wonkastocks@gmail.com'\r"
+expect "# "
+send "echo '3. Select app: Mail'\r"
+expect "# "
+send "echo '4. Select device: Other (Custom name)'\r"
+expect "# "
+send "echo '5. Enter name: WonkaTech CTF Platform'\r"
+expect "# "
+send "echo '6. Click Generate'\r"
+expect "# "
+send "echo '7. Copy the 16-character password'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'Then update the password by running:'\r"
+expect "# "
+send "echo '   nano /etc/postfix/sasl_passwd'\r"
+expect "# "
+send "echo '   (Replace YOUR_APP_PASSWORD_HERE with the generated password)'\r"
+expect "# "
+send "echo '   postmap /etc/postfix/sasl_passwd'\r"
+expect "# "
+send "echo '   systemctl restart postfix'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'Configuration files created successfully!'\r"
+expect "# "
+
+send "exit\r"
+expect eof

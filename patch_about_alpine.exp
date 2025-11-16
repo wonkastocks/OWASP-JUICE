@@ -1,0 +1,94 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+# SSH and patch the About content
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "echo 'Patching About Us content in Juice Shop containers...'\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+
+# Create patch script for Alpine containers
+send "cat > /tmp/patch_about_alpine.sh << 'SCRIPT_EOF'\r"
+send "#!/bin/sh\r"
+send "\r"
+send "# Function to patch a container\r"
+send "patch_container() {\r"
+send "    CONTAINER=\$1\r"
+send "    echo \"Patching \$CONTAINER...\"\r"
+send "    \r"
+send "    # Find the main JavaScript bundle\r"
+send "    MAIN_JS=\$(docker exec \$CONTAINER sh -c 'ls /juice-shop/frontend/dist/frontend/main*.js 2>/dev/null | head -1')\r"
+send "    \r"
+send "    if \[ -z \"\$MAIN_JS\" \]; then\r"
+send "        echo \"Could not find main.js in \$CONTAINER\"\r"
+send "        return\r"
+send "    fi\r"
+send "    \r"
+send "    echo \"Found: \$MAIN_JS\"\r"
+send "    \r"
+send "    # Create backup\r"
+send "    docker exec \$CONTAINER sh -c \"cp \$MAIN_JS \$MAIN_JS.bak 2>/dev/null || true\"\r"
+send "    \r"
+send "    # Replace Lorem Ipsum with meaningful content using sh and sed\r"
+send "    docker exec \$CONTAINER sh -c \"sed -i 's/Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua./Founded in 2014, OWASP Juice Shop started as a small family-owned business with a simple mission: to deliver fresh, organic juices directly to your doorstep./g' \$MAIN_JS\"\r"
+send "    \r"
+send "    docker exec \$CONTAINER sh -c \"sed -i 's/At vero eos et accusam et justo duo dolores et ea rebum./We pride ourselves on our commitment to quality and sustainability./g' \$MAIN_JS\"\r"
+send "    \r"
+send "    docker exec \$CONTAINER sh -c \"sed -i 's/Stet clita kasd gubergren, no sea takimata sanctus est/Our facility maintains the highest standards of food safety/g' \$MAIN_JS\"\r"
+send "    \r"
+send "    # Keep the boring terms of use link intact for CTF\r"
+send "    \r"
+send "    echo \"Container \$CONTAINER patched\"\r"
+send "}\r"
+send "\r"
+send "# Stop and restart containers to apply changes\r"
+send "echo 'Stopping containers...'\r"
+send "docker stop juice-user1 juice-user2 juice-user3 juice-user4 juice-user5\r"
+send "\r"
+send "# Patch all containers\r"
+send "for i in 1 2 3 4 5; do\r"
+send "    docker start juice-user\$i\r"
+send "    sleep 3\r"
+send "    patch_container juice-user\$i\r"
+send "done\r"
+send "\r"
+send "echo ''\r"
+send "echo 'Restarting containers to apply changes...'\r"
+send "docker restart juice-user1 juice-user2 juice-user3 juice-user4 juice-user5\r"
+send "\r"
+send "echo ''\r"
+send "echo 'All containers patched!'\r"
+send "echo 'Note: The Lorem Ipsum text is deeply embedded in the compiled Angular app.'\r"
+send "echo 'For full customization, we would need to rebuild from source.'\r"
+send "SCRIPT_EOF\r"
+expect "# "
+
+send "chmod +x /tmp/patch_about_alpine.sh\r"
+expect "# "
+
+send "echo 'Running Alpine-compatible patch script...'\r"
+expect "# "
+send "/tmp/patch_about_alpine.sh\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo 'Patch attempt complete.'\r"
+expect "# "
+send "echo 'Note: The Angular app is compiled and minified, making text replacement complex.'\r"
+expect "# "
+send "echo 'The most reliable approach would be to fork and rebuild Juice Shop.'\r"
+expect "# "
+
+send "exit\r"
+expect eof

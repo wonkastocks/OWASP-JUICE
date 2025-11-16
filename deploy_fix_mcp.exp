@@ -1,0 +1,36 @@
+#!/usr/bin/expect -f
+set timeout 120
+
+# Copy the fix script
+spawn scp /Users/walterbarr_1/sql-injection-lab/fix_ctf_platform.sh vultr:/tmp/
+expect {
+    "password:" {
+        send "\\\$Hg5sD&8Lp@9\r"
+        expect eof
+    }
+    timeout {
+        puts "Timeout on SCP"
+        exit 1
+    }
+}
+
+# Execute the fix
+spawn ssh vultr "bash /tmp/fix_ctf_platform.sh"
+expect {
+    "password:" {
+        send "\\\$Hg5sD&8Lp@9\r"
+        expect {
+            "CONFIGURATION COMPLETE" {
+                puts "\n✅ Fix applied successfully!"
+            }
+            timeout {
+                puts "\nScript is running..."
+            }
+        }
+        expect eof
+    }
+    timeout {
+        puts "Timeout on SSH"
+        exit 1
+    }
+}

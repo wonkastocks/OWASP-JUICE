@@ -1,0 +1,96 @@
+#!/usr/bin/expect -f
+set timeout 600
+log_user 1
+
+# Store password in variable with proper escaping
+set pass {\$Hg5sD&8Lp@9}
+
+puts "========================================="
+puts "MCP-STYLE DEPLOYMENT"
+puts "========================================="
+
+# First create the install script locally
+exec cat << 'FULLSCRIPT' > /tmp/full_install.sh
+#!/bin/bash
+echo "Starting installation..."
+
+# 1. Apache and CTF page
+systemctl start apache2
+systemctl enable apache2
+mkdir -p /var/www/html
+echo '<h1>Wonka Tech CTF</h1><p><a href="http://155.138.197.128:4000">Juice Shop Standalone (XSS Works!)</a></p>' > /var/www/html/index.html
+chown www-data:www-data /var/www/html/index.html
+
+# 2. Firewall
+ufw allow 80/tcp
+ufw allow 4000/tcp
+ufw --force enable
+
+# 3. Install Node.js
+which node || {
+    curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+    apt-get install -y nodejs
+}
+
+# 4. Install Juice Shop on port 4000
+cd /opt
+if [ ! -d juice-shop-standalone ]; then
+    git clone https://github.com/juice-shop/juice-shop.git juice-shop-standalone
+    cd juice-shop-standalone
+    echo "server:" > config/default.yml
+    echo "  port: 4000" >> config/default.yml
+    echo "application:" >> config/default.yml
+    echo "  xssProtection: false" >> config/default.yml
+    echo "challenges:" >> config/default.yml
+    echo "  xssProtection: false" >> config/default.yml
+    npm install --production
+fi
+
+# 5. Start Juice Shop
+cd /opt/juice-shop-standalone
+pkill -f "node app.js" 2>/dev/null
+nohup node app.js > /var/log/juice.log 2>&1 &
+
+echo "Installation complete!"
+echo "Access at:"
+echo "  http://155.138.197.128 - CTF"
+echo "  http://155.138.197.128:4000 - Juice Shop"
+FULLSCRIPT
+
+puts "\nCopying installation script to server..."
+
+# Copy the script
+spawn scp /tmp/full_install.sh root@155.138.197.128:/tmp/
+expect {
+    "yes/no" {
+        send "yes\r"
+        exp_continue
+    }
+    "password:" {
+        send "$pass\r"
+        expect eof
+    }
+}
+
+puts "\nExecuting installation script..."
+
+# Execute the script
+spawn ssh root@155.138.197.128 bash /tmp/full_install.sh
+expect {
+    "password:" {
+        send "$pass\r"
+        expect {
+            "Installation complete" {
+                puts "\n✅ SUCCESS!"
+            }
+            eof
+        }
+    }
+}
+
+puts "\n========================================="
+puts "DEPLOYMENT COMPLETE!"
+puts "Access your services at:"
+puts "  http://155.138.197.128 - CTF Platform"
+puts "  http://155.138.197.128:4000 - Juice Shop (XSS works!)"
+puts "========================================="

@@ -1,0 +1,52 @@
+#!/usr/bin/expect -f
+
+# Automated deployment script for Wally's Monkey Parts
+set timeout 30
+set server "155.138.197.128"
+set password "YOUR_PASSWORD_HERE"
+
+# Copy database file
+spawn scp /Users/walterbarr_1/sql-injection-lab/wallys_database_setup.sql root@$server:/root/
+expect {
+    "password:" {
+        send "$password\r"
+        expect eof
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+        expect eof
+    }
+}
+
+# Copy PHP files
+spawn scp /Users/walterbarr_1/sql-injection-lab/wallys_login.php /Users/walterbarr_1/sql-injection-lab/wallys_dashboard.php /Users/walterbarr_1/sql-injection-lab/wallys_logout.php root@$server:/var/www/html/
+expect {
+    "password:" {
+        send "$password\r"
+        expect eof
+    }
+}
+
+# SSH and setup
+spawn ssh root@$server
+expect {
+    "password:" {
+        send "$password\r"
+    }
+}
+expect "# "
+send "mysql < /root/wallys_database_setup.sql\r"
+expect "# "
+send "chown www-data:www-data /var/www/html/wallys_*.php\r"
+expect "# "
+send "chmod 644 /var/www/html/wallys_*.php\r"
+expect "# "
+send "systemctl restart apache2\r"
+expect "# "
+send "exit\r"
+expect eof
+
+puts "\nDeployment complete!"
+puts "Access at: http://$server/wallys_login.php"

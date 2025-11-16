@@ -1,0 +1,82 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect "# "
+
+send "echo '=== Testing Order Flow ==='\r"
+expect "# "
+
+send "echo ''\r"
+send "echo '1. Login redirects to order page:'\r"
+expect "# "
+
+# Test SQL injection login redirects to order page
+send "curl -s -L -c /tmp/order_cookies.txt -X POST http://localhost/login.php -d \"username=admin' -- &password=x\" | grep -o 'Place Your Order\\|Shopping as' | head -1\r"
+expect "# "
+
+send "echo ''\r"
+send "echo '2. Order page shows user name:'\r"
+expect "# "
+
+# Check order page shows logged in user
+send "curl -s -b /tmp/order_cookies.txt http://localhost/order.php | grep -o 'Shopping as:.*Administrator' | head -1\r"
+expect "# "
+
+send "echo ''\r"
+send "echo '3. Profile link visible in order page:'\r"
+expect "# "
+
+# Check profile link exists
+send "curl -s -b /tmp/order_cookies.txt http://localhost/order.php | grep -o 'My Profile' | head -1\r"
+expect "# "
+
+send "echo ''\r"
+send "echo '4. Profile link goes to dashboard:'\r"
+expect "# "
+
+# Check dashboard is accessible from order page
+send "curl -s -b /tmp/order_cookies.txt http://localhost/dashboard.php | grep -o 'Walter Administrator\\|Account Information' | head -2\r"
+expect "# "
+
+send "echo ''\r"
+send "echo '5. Products are displayed:'\r"
+expect "# "
+
+# Check products are shown
+send "curl -s -b /tmp/order_cookies.txt http://localhost/order.php | grep -o 'Premium Brake Pads\\|Oil Filter Pro' | head -2\r"
+expect "# "
+
+send "echo ''\r"
+send "echo '6. Normal login also works:'\r"
+expect "# "
+
+# Test normal login
+send "curl -s -L -c /tmp/normal_order.txt -X POST http://localhost/login.php -d \"username=john_doe&password=john123\" | grep -o 'Place Your Order' | head -1\r"
+expect "# "
+
+send "curl -s -b /tmp/normal_order.txt http://localhost/order.php | grep -o 'Shopping as:.*John' | head -1\r"
+expect "# "
+
+send "echo ''\r"
+send "echo 'Order flow complete: Login -> Order -> Profile link'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\nOrder flow test complete!"

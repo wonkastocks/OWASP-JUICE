@@ -1,0 +1,87 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+# Create test users directly in database
+send "mysql -u root ctf_platform -e \"INSERT INTO users (username, email, password_hash, email_verified, created_at) VALUES ('testuser1', 'test1@example.com', '\\\$2y\\\$10\\\$YQkuZmVyeV9zZWN1cmVfcGFz.OgZ4kXZwz3ZwXlVwXlVwX', 1, NOW()), ('testuser2', 'test2@example.com', '\\\$2y\\\$10\\\$YQkuZmVyeV9zZWN1cmVfcGFz.OgZ4kXZwz3ZwXlVwXlVwX', 1, NOW());\"\r"
+expect "# "
+
+# Check if users were created
+send "mysql -u root ctf_platform -e \"SELECT id, username, email, instance_port FROM users WHERE username LIKE 'testuser%';\"\r"
+expect "# "
+
+# Allocate instances for both users
+send "cd /var/www/ctf-platform/\r"
+expect "# "
+
+# Create a PHP script to allocate instances
+send "cat > allocate_test.php << 'EOF'\r"
+send "<?php\r"
+send "require_once 'config.php';\r"
+send "require_once 'instance_manager.php';\r"
+send "\r"
+send "// Allocate instance for testuser1\r"
+send "\\\$user1_id = 1;\r"
+send "\\\$port1 = InstanceManager::allocateInstance(\\\$user1_id);\r"
+send "echo \"User 1 allocated port: \\\$port1\\n\";\r"
+send "\r"
+send "// Allocate instance for testuser2\r"
+send "\\\$user2_id = 2;\r"
+send "\\\$port2 = InstanceManager::allocateInstance(\\\$user2_id);\r"
+send "echo \"User 2 allocated port: \\\$port2\\n\";\r"
+send "\r"
+send "// Check running containers\r"
+send "echo \"\\nRunning containers:\\n\";\r"
+send "system('docker ps --format \"table {{.Names}}\\t{{.Ports}}\" | grep juice');\r"
+send "?>\r"
+send "EOF\r"
+expect "# "
+
+# Run the allocation script
+send "php allocate_test.php\r"
+expect "# "
+
+# Test the instances via tunnel
+send "echo ''\r"
+expect "# "
+send "echo 'Testing instance access via tunnel...'\r"
+expect "# "
+send "curl -s -I https://instance1.wonkatech.org | head -3\r"
+expect "# "
+send "curl -s -I https://instance2.wonkatech.org | head -3\r"
+expect "# "
+
+# Complete the first challenge on instance 1
+send "echo ''\r"
+expect "# "
+send "echo 'Completing first challenge (DOM XSS) on instance 1...'\r"
+expect "# "
+send "curl -s 'http://localhost:3001/#/search?q=<iframe%20src%3D\"javascript:alert(%60xss%60)\">'\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo 'Platform test complete!'\r"
+expect "# "
+send "echo 'Summary:'\r"
+expect "# "
+send "echo '- 2 users created and verified'\r"
+expect "# "
+send "echo '- Both allocated separate instances (ports 3001 and 3002)'\r"
+expect "# "
+send "echo '- Instances accessible via https://instance1.wonkatech.org and https://instance2.wonkatech.org'\r"
+expect "# "
+send "echo '- Challenges can be completed independently on each instance'\r"
+expect "# "
+
+send "exit\r"
+expect eof

@@ -1,0 +1,72 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+# SCP the order page and updated login
+spawn scp /Users/walterbarr_1/sql-injection-lab/order.php /Users/walterbarr_1/sql-injection-lab/login_to_order.php root@155.138.197.128:/tmp/
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect eof
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect "# "
+
+send "echo 'Deploying order flow...'\r"
+expect "# "
+
+# Backup current login
+send "cp /var/www/html/login.php /var/www/html/login.php.backup.`date +%Y%m%d_%H%M%S`\r"
+expect "# "
+
+# Deploy order page
+send "cp /tmp/order.php /var/www/html/order.php\r"
+expect "# "
+
+# Deploy updated login that redirects to order page
+send "cp /tmp/login_to_order.php /var/www/html/login.php\r"
+expect "# "
+
+# Set permissions
+send "chown www-data:www-data /var/www/html/order.php /var/www/html/login.php\r"
+expect "# "
+
+send "chmod 644 /var/www/html/order.php /var/www/html/login.php\r"
+expect "# "
+
+# Restart services
+send "systemctl restart apache2\r"
+expect "# "
+
+send "systemctl restart php8.1-fpm\r"
+expect "# "
+
+send "echo 'Order flow deployed! Login -> Order -> Profile'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\nOrder flow deployed successfully!"

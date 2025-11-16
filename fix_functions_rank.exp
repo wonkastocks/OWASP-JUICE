@@ -1,0 +1,30 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" { send "$password\r" }
+}
+expect "# "
+
+# Fix the rank field name in functions.php
+send "sed -i 's/s\\.rank/s.user_rank/g' /var/www/ctf-platform/admin/functions.php\r"
+expect "# "
+
+send "sed -i 's/scores\\.rank/scores.user_rank/g' /var/www/ctf-platform/admin/functions.php\r"
+expect "# "
+
+# Also fix any references to rank in the SQL queries
+send "sed -i \"s/'rank'/'user_rank'/g\" /var/www/ctf-platform/admin/functions.php\r"
+expect "# "
+
+# Test the admin panel login page
+send "curl -s http://localhost/admin/admin_login.php | grep -i 'wonkatech\\|error' | head -5\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\n✅ Functions file updated with correct column names!"

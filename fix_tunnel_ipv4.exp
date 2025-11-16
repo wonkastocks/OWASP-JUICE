@@ -1,0 +1,57 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+# Add IPv4 preference to config
+send "sed -i '1a\\protocol: quic' /etc/cloudflared/config.yml\r"
+expect "# "
+send "sed -i '2a\\edge-ip-version: 4' /etc/cloudflared/config.yml\r"
+expect "# "
+
+# Restart cloudflared
+send "systemctl restart cloudflared\r"
+expect "# "
+
+send "sleep 3\r"
+expect "# "
+
+# Check status
+send "systemctl status cloudflared --no-pager | grep Active\r"
+expect "# "
+
+# Test tunnel connectivity directly
+send "cloudflared tunnel info wonkatech-ctf | grep -E 'CONNECTOR|EDGE'\r"
+expect "# "
+
+# Clear Cloudflare cache by hitting the API
+send "echo 'Testing if tunnel works now...'\r"
+expect "# "
+
+# Test with a unique cache-busting parameter
+send "curl -s -I 'http://localhost/?test=\$(date +%s)' | head -3\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo 'If DNS is still showing old records, try:'\r"
+expect "# "
+send "echo '1. In Cloudflare: Check that you have CNAME for @ pointing to tunnel'\r"
+expect "# "
+send "echo '2. In Cloudflare: Check that you have CNAME for * pointing to tunnel'\r"
+expect "# "
+send "echo '3. In Cloudflare: Make sure NO A records exist'\r"
+expect "# "
+send "echo '4. Clear browser cache or try incognito mode'\r"
+expect "# "
+
+send "exit\r"
+expect eof

@@ -1,0 +1,79 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+
+# Connect to server
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "\$\$R00tbeer02\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "\$\$R00tbeer02\r"
+    }
+}
+
+expect "root@*"
+
+# Fix the cloudflare config
+send "cat > /root/.cloudflared/config.yml << 'EOF'\r"
+send "tunnel: wonkatech-ctf\r"
+send "credentials-file: /root/.cloudflared/3e6698e3-59fb-4bb4-aa52-7dde59039354.json\r"
+send "\r"
+send "ingress:\r"
+send "  - hostname: wonkatech.org\r"
+send "    service: http://localhost:80\r"
+send "  - hostname: www.wonkatech.org\r"
+send "    service: http://localhost:80\r"
+send "  - hostname: juice1.wonkatech.org\r"
+send "    service: http://localhost:3001\r"
+send "  - hostname: juice2.wonkatech.org\r"
+send "    service: http://localhost:3002\r"
+send "  - hostname: juice3.wonkatech.org\r"
+send "    service: http://localhost:3003\r"
+send "  - hostname: juice4.wonkatech.org\r"
+send "    service: http://localhost:3004\r"
+send "  - hostname: juice5.wonkatech.org\r"
+send "    service: http://localhost:3005\r"
+send "  - hostname: juice6.wonkatech.org\r"
+send "    service: http://localhost:3006\r"
+send "  - hostname: juice7.wonkatech.org\r"
+send "    service: http://localhost:3007\r"
+send "  - hostname: juice8.wonkatech.org\r"
+send "    service: http://localhost:3008\r"
+send "  - hostname: juice9.wonkatech.org\r"
+send "    service: http://localhost:3009\r"
+send "  - hostname: juice10.wonkatech.org\r"
+send "    service: http://localhost:3010\r"
+send "  - service: http_status:404\r"
+send "EOF\r"
+expect "root@*"
+
+# Copy to /etc
+send "cp /root/.cloudflared/config.yml /etc/cloudflared/config.yml\r"
+expect "root@*"
+
+# Restart service
+send "systemctl restart cloudflared\r"
+expect "root@*"
+
+send "sleep 5\r"
+expect "root@*"
+
+# Check status
+send "systemctl status cloudflared --no-pager | grep Active\r"
+expect "root@*"
+
+# Fix willy's assignment
+send "mysql -u ctf_user -p'Ctf_Pass123!' ctf_db -e \"UPDATE users SET instance_url='https://juice6.wonkatech.org' WHERE username='willy';\"\r"
+expect "root@*"
+
+# Verify the update
+send "mysql -u ctf_user -p'Ctf_Pass123!' ctf_db -e \"SELECT username, instance_url FROM users WHERE username='willy';\"\r"
+expect "root@*"
+
+send "exit\r"
+expect eof

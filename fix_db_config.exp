@@ -1,0 +1,77 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "echo 'Checking config.php file...'\r"
+expect "# "
+
+# Check if config.php exists and has the right variables
+send "ls -la /var/www/ctf-platform/config.php\r"
+expect "# "
+
+# Check the content of config.php
+send "cat /var/www/ctf-platform/config.php\r"
+expect "# "
+
+# Create or update config.php with proper database settings
+send "cat > /var/www/ctf-platform/config.php << 'PHPCONFIG'\r"
+send "<?php\r"
+send "// Database configuration\r"
+send "\\\$servername = \\\"localhost\\\";\r"
+send "\\\$db_username = \\\"root\\\";\r"
+send "\\\$db_password = \\\"\\\";\r"
+send "\\\$dbname = \\\"ctf_platform\\\";\r"
+send "\r"
+send "// Start session if not already started\r"
+send "if (session_status() === PHP_SESSION_NONE) {\r"
+send "    session_start();\r"
+send "}\r"
+send "?>\r"
+send "PHPCONFIG\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo 'Config file created/updated successfully!'\r"
+expect "# "
+
+# Set proper permissions
+send "chmod 644 /var/www/ctf-platform/config.php\r"
+expect "# "
+send "chown www-data:www-data /var/www/ctf-platform/config.php\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo 'DATABASE CONFIG FIXED!'\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo '✅ Created/updated config.php with database settings'\r"
+expect "# "
+send "echo '✅ Set proper file permissions'\r"
+expect "# "
+send "echo '✅ Session handling included to prevent warnings'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'The resend verification page should now work without errors!'\r"
+expect "# "
+send "echo 'Test it at: https://wonkatech.org/resend_verification.php'\r"
+expect "# "
+
+send "exit\r"
+expect eof

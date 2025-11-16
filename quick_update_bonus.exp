@@ -1,0 +1,31 @@
+#!/usr/bin/expect -f
+set timeout 30
+# Password starts with $$ so we need to escape it properly
+set password {\$\$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+# Update the Bonus Payload challenge to solved
+send "docker exec juice-standalone sqlite3 /juice-shop/data/juiceshop.sqlite \"UPDATE Challenges SET solved=1 WHERE key='xssBonusChallenge';\"\r"
+expect "# "
+
+# Verify it worked
+send "docker exec juice-standalone sqlite3 /juice-shop/data/juiceshop.sqlite \"SELECT key, name, solved FROM Challenges WHERE key='xssBonusChallenge';\"\r"
+expect "# "
+
+# Count total solved
+send "docker exec juice-standalone sqlite3 /juice-shop/data/juiceshop.sqlite \"SELECT COUNT(*) as 'Total Solved' FROM Challenges WHERE solved=1;\"\r"
+expect "# "
+
+send "echo 'Bonus Payload challenge updated successfully!'\r"
+expect "# "
+
+send "exit\r"
+expect eof

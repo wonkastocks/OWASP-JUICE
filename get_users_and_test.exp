@@ -1,0 +1,123 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect "# "
+
+send "echo '=== GETTING USER ACCOUNTS ==='\r"
+expect "# "
+
+# Get admin users
+send "mysql -u root wallys_monkey_parts -e \"SELECT username, password, is_admin FROM users WHERE is_admin = 1 LIMIT 5;\"\r"
+expect "# "
+
+# Get regular users
+send "mysql -u root wallys_monkey_parts -e \"SELECT username, password, is_admin FROM users WHERE is_admin = 0 LIMIT 5;\"\r"
+expect "# "
+
+# Check what passwords look like (MD5 hashed)
+send "mysql -u root wallys_monkey_parts -e \"SELECT username, password FROM users WHERE username IN ('admin', 'john_doe', 'test_user');\"\r"
+expect "# "
+
+send "echo ''\r"
+send "echo '=== TESTING KNOWN PASSWORDS ==='\r"
+expect "# "
+
+# Test if common passwords work
+send "echo -n 'MD5 of password123: ' && echo -n 'password123' | md5sum\r"
+expect "# "
+
+send "echo -n 'MD5 of admin: ' && echo -n 'admin' | md5sum\r"
+expect "# "
+
+send "echo -n 'MD5 of test: ' && echo -n 'test' | md5sum\r"
+expect "# "
+
+# Check if any users have these common passwords
+send "mysql -u root wallys_monkey_parts -e \"SELECT username FROM users WHERE password = MD5('password123') LIMIT 5;\"\r"
+expect "# "
+
+send "mysql -u root wallys_monkey_parts -e \"SELECT username FROM users WHERE password = MD5('admin') LIMIT 5;\"\r"
+expect "# "
+
+send "mysql -u root wallys_monkey_parts -e \"SELECT username FROM users WHERE password = MD5('test') LIMIT 5;\"\r"
+expect "# "
+
+send "mysql -u root wallys_monkey_parts -e \"SELECT username FROM users WHERE password = MD5('123456') LIMIT 5;\"\r"
+expect "# "
+
+send "echo ''\r"
+send "echo '=== TESTING SQL INJECTIONS ==='\r"
+expect "# "
+
+# Test SQL injection 1: admin' --
+send "curl -s -X POST http://localhost/logintest.php -d \"username=admin' -- &password=anything\" | grep -o 'SUCCESS.*YES'\r"
+expect "# "
+
+# Test SQL injection 2: ' OR 1=1 --
+send "curl -s -X POST http://localhost/logintest.php -d \"username=' OR 1=1 -- &password=anything\" | grep -o 'SUCCESS.*YES'\r"
+expect "# "
+
+# Test SQL injection 3: admin' OR '1'='1
+send "curl -s -X POST http://localhost/logintest.php -d \"username=admin' OR '1'='1&password=anything\" | grep -o 'SUCCESS.*YES'\r"
+expect "# "
+
+# Test SQL injection 4: ' OR is_admin=1 --
+send "curl -s -X POST http://localhost/logintest.php -d \"username=' OR is_admin=1 -- &password=x\" | grep -o 'SUCCESS.*YES'\r"
+expect "# "
+
+send "echo ''\r"
+send "echo '=== CREATING TEST USERS WITH KNOWN PASSWORDS ==='\r"
+expect "# "
+
+# Create some test users with known passwords
+send "mysql -u root wallys_monkey_parts -e \"UPDATE users SET password = MD5('demo123') WHERE username = 'demo';\"\r"
+expect "# "
+
+send "mysql -u root wallys_monkey_parts -e \"UPDATE users SET password = MD5('test123') WHERE username = 'test_user';\"\r"
+expect "# "
+
+send "mysql -u root wallys_monkey_parts -e \"UPDATE users SET password = MD5('admin123') WHERE username = 'admin';\"\r"
+expect "# "
+
+send "mysql -u root wallys_monkey_parts -e \"UPDATE users SET password = MD5('john123') WHERE username = 'john_doe';\"\r"
+expect "# "
+
+send "echo ''\r"
+send "echo '=== TESTING REGULAR LOGINS ==='\r"
+expect "# "
+
+# Test admin login
+send "curl -s -X POST http://localhost/logintest.php -d \"username=admin&password=admin123\" | grep -o 'SUCCESS.*YES'\r"
+expect "# "
+
+# Test regular user login
+send "curl -s -X POST http://localhost/logintest.php -d \"username=john_doe&password=john123\" | grep -o 'SUCCESS.*NO'\r"
+expect "# "
+
+# Test demo user
+send "curl -s -X POST http://localhost/logintest.php -d \"username=demo&password=demo123\" | grep -o 'SUCCESS.*NO'\r"
+expect "# "
+
+send "echo ''\r"
+send "echo 'All tests complete!'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\nTesting complete!"

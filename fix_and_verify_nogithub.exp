@@ -1,0 +1,74 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+# SSH and fix remaining issues
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "echo 'Fixing remaining container issues...'\r"
+expect "# "
+
+# Fix juice-user1 that was restarting
+send "docker stop juice-user1 2>/dev/null\r"
+expect "# "
+send "docker rm juice-user1 2>/dev/null\r"
+expect "# "
+
+# Restart juice-user1 with correct config
+send "docker run -d --name juice-user1 -p 3001:3000 -e NODE_ENV=ctf -e \"NODE_CONFIG={\\\"application\\\":{\\\"showGitHubLinks\\\":false,\\\"gitHubRibbon\\\":false}}\" --restart unless-stopped bkimminich/juice-shop\r"
+expect "# "
+
+# Wait for it to start
+send "sleep 5\r"
+expect "# "
+
+# Check all containers
+send "echo ''\r"
+expect "# "
+send "echo 'All containers status:'\r"
+expect "# "
+send "docker ps --format 'table {{.Names}}\\t{{.Ports}}\\t{{.Status}}' | grep juice\r"
+expect "# "
+
+# Test accessibility
+send "echo ''\r"
+expect "# "
+send "echo 'Testing all instances:'\r"
+expect "# "
+send "for port in 3001 3002 3003 3004 3005; do echo -n \"Port \$port: \"; curl -s -o /dev/null -w '%{http_code}' http://localhost:\$port && echo ' ✅' || echo ' ❌'; done\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo 'Configuration Complete!'\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'GitHub links have been disabled in all instances.'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'To see the changes:'\r"
+expect "# "
+send "echo '1. Clear your browser cache (Cmd+Shift+R or Ctrl+Shift+R)'\r"
+expect "# "
+send "echo '2. Or open in an incognito/private window'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'The GitHub link will no longer appear in the menu.'\r"
+expect "# "
+
+send "exit\r"
+expect eof

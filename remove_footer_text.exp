@@ -1,0 +1,55 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect "# "
+
+# Remove the copyright and entertainment purposes text
+send "sed -i '/© 2025.*Wally.*Monkey Parts/d' /var/www/html/login.php\r"
+expect "# "
+
+send "sed -i '/2025.*Wally.*Monkey Parts/d' /var/www/html/login.php\r"
+expect "# "
+
+send "sed -i '/All rights reserved/d' /var/www/html/login.php\r"
+expect "# "
+
+send "sed -i '/For entertainment purposes only/d' /var/www/html/login.php\r"
+expect "# "
+
+send "sed -i '/entertainment purposes/d' /var/www/html/login.php\r"
+expect "# "
+
+# Also remove the entire copyright div if it exists
+send "sed -i '/<div.*copyright/,/<\\/div>/d' /var/www/html/login.php\r"
+expect "# "
+
+# Remove footer text that might be in a p tag
+send "sed -i '/<p>.*2025.*Wally.*<\\/p>/d' /var/www/html/login.php\r"
+expect "# "
+
+# Restart Apache
+send "systemctl restart apache2\r"
+expect "# "
+
+send "echo 'Footer text removed!'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\nFooter copyright text removed!"

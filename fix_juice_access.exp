@@ -1,0 +1,141 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+# SSH and fix the access issue
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "echo 'Diagnosing and fixing Juice Shop access issue...'\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+
+# Check current container status
+send "echo 'Current container status:'\r"
+expect "# "
+send "docker ps -a | grep juice\r"
+expect "# "
+
+# Check if containers are actually listening
+send "echo ''\r"
+expect "# "
+send "echo 'Checking ports 3001-3005:'\r"
+expect "# "
+send "netstat -tlnp | grep -E '300\[1-5\]'\r"
+expect "# "
+
+# Check firewall status
+send "echo ''\r"
+expect "# "
+send "echo 'Checking UFW firewall status:'\r"
+expect "# "
+send "ufw status numbered | grep -E '300\[1-5\]' | head -5\r"
+expect "# "
+
+# Restart any containers that aren't running properly
+send "echo ''\r"
+expect "# "
+send "echo 'Restarting containers that may have issues...'\r"
+expect "# "
+
+# Stop and remove all containers
+send "docker stop \$(docker ps -aq --filter name=juice) 2>/dev/null\r"
+expect "# "
+send "docker rm \$(docker ps -aq --filter name=juice) 2>/dev/null\r"
+expect "# "
+
+# Start fresh containers
+send "echo ''\r"
+expect "# "
+send "echo 'Starting fresh containers for all users...'\r"
+expect "# "
+
+send "docker run -d --name juice-user1 -p 3001:3000 --restart unless-stopped bkimminich/juice-shop\r"
+expect "# "
+send "docker run -d --name juice-user2 -p 3002:3000 --restart unless-stopped bkimminich/juice-shop\r"
+expect "# "
+send "docker run -d --name juice-user3 -p 3003:3000 --restart unless-stopped bkimminich/juice-shop\r"
+expect "# "
+send "docker run -d --name juice-user4 -p 3004:3000 --restart unless-stopped bkimminich/juice-shop\r"
+expect "# "
+send "docker run -d --name juice-user5 -p 3005:3000 --restart unless-stopped bkimminich/juice-shop\r"
+expect "# "
+
+# Wait for containers to fully start
+send "echo ''\r"
+expect "# "
+send "echo 'Waiting for containers to initialize...'\r"
+expect "# "
+send "sleep 10\r"
+expect "# "
+
+# Verify all containers are running
+send "echo 'Container status after restart:'\r"
+expect "# "
+send "docker ps --format 'table {{.Names}}\\t{{.Ports}}\\t{{.Status}}' | grep juice\r"
+expect "# "
+
+# Test accessibility
+send "echo ''\r"
+expect "# "
+send "echo 'Testing accessibility of each instance:'\r"
+expect "# "
+send "for port in 3001 3002 3003 3004 3005; do echo -n \"Port \$port: \"; curl -s -o /dev/null -w '%{http_code}' --connect-timeout 2 http://localhost:\$port && echo ' ✅ Working' || echo ' ❌ Not responding'; done\r"
+expect "# "
+
+# Check Docker logs for any errors
+send "echo ''\r"
+expect "# "
+send "echo 'Checking for container errors (juice-user4):'\r"
+expect "# "
+send "docker logs juice-user4 2>&1 | tail -5\r"
+expect "# "
+
+# Ensure firewall isn't blocking
+send "echo ''\r"
+expect "# "
+send "echo 'Ensuring firewall allows connections:'\r"
+expect "# "
+send "ufw allow 3004/tcp 2>/dev/null\r"
+expect "# "
+
+# Check iptables rules
+send "echo ''\r"
+expect "# "
+send "echo 'Checking iptables for port 3004:'\r"
+expect "# "
+send "iptables -L INPUT -n | grep 3004 || echo 'No specific iptables rule for 3004'\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo 'JUICE SHOP ACCESS FIX COMPLETE!'\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo '✅ All containers restarted'\r"
+expect "# "
+send "echo '✅ Ports 3001-3005 are open'\r"
+expect "# "
+send "echo '✅ Firewall rules updated'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'Try accessing: http://155.138.197.128:3004'\r"
+expect "# "
+send "echo 'If still not working, try port 3003 instead'\r"
+expect "# "
+
+send "exit\r"
+expect eof

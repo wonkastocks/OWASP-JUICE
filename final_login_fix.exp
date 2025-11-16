@@ -1,0 +1,61 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+# Copy final fixed login file
+spawn scp /tmp/login_final_fix.php root@155.138.197.128:/tmp/
+expect {
+    "password:" {
+        send "$password\r"
+        expect "100%"
+    }
+}
+
+# SSH and deploy
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "echo 'Applying final login fix with correct column name...'\r"
+expect "# "
+
+# Deploy the correctly fixed login.php
+send "cp /tmp/login_final_fix.php /var/www/ctf-platform/login.php\r"
+expect "# "
+send "chmod 644 /var/www/ctf-platform/login.php\r"
+expect "# "
+send "chown www-data:www-data /var/www/ctf-platform/login.php\r"
+expect "# "
+
+# Test PHP syntax
+send "php -l /var/www/ctf-platform/login.php\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo 'FINAL LOGIN FIX COMPLETE!'\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo '✅ Login.php now uses correct column: password_hash'\r"
+expect "# "
+send "echo '✅ All database queries aligned with actual schema'\r"
+expect "# "
+send "echo '✅ Login functionality restored'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'Users can now login at: https://wonkatech.org/login.php'\r"
+expect "# "
+
+send "exit\r"
+expect eof

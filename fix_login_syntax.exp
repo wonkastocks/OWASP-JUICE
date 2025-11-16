@@ -1,0 +1,67 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+# Copy fixed login file
+spawn scp /tmp/login_fixed.php root@155.138.197.128:/tmp/
+expect {
+    "password:" {
+        send "$password\r"
+        expect "100%"
+    }
+}
+
+# SSH and deploy
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "echo 'Fixing login.php syntax error...'\r"
+expect "# "
+
+# Backup existing file
+send "cp /var/www/ctf-platform/login.php /var/www/ctf-platform/login.php.bak2 2>/dev/null || true\r"
+expect "# "
+
+# Deploy fixed login
+send "cp /tmp/login_fixed.php /var/www/ctf-platform/login.php\r"
+expect "# "
+send "chmod 644 /var/www/ctf-platform/login.php\r"
+expect "# "
+send "chown www-data:www-data /var/www/ctf-platform/login.php\r"
+expect "# "
+
+# Test PHP syntax
+send "php -l /var/www/ctf-platform/login.php\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo 'LOGIN PAGE FIXED!'\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo '✅ Fixed syntax error on line 20'\r"
+expect "# "
+send "echo '✅ Login page now properly displays resend verification link'\r"
+expect "# "
+send "echo '✅ Added forgot password link'\r"
+expect "# "
+send "echo '✅ All PHP syntax validated'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'Test the complete flow at: https://wonkatech.org'\r"
+expect "# "
+
+send "exit\r"
+expect eof

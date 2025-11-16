@@ -1,0 +1,8 @@
+#!/usr/bin/expect -f
+set timeout 30
+set password {\$Hg5sD&8Lp@9}
+
+spawn ssh root@155.138.197.128 "ufw allow 3000/tcp && ufw status"
+expect "password:"
+send "$password\r"
+interact

@@ -1,0 +1,54 @@
+#!/usr/bin/expect -f
+
+# SSH script to remove hints with password that starts with $
+set timeout 30
+set server "155.138.197.128"
+
+# Since password starts with $, we need to escape it properly
+# Use curly braces to prevent variable substitution
+set password {$YOUR_PASSWORD_HERE}
+
+spawn ssh root@$server
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+# Wait for prompt
+expect "# "
+
+# Remove the demo-info section
+send "sed -i '/<div class=\"demo-info\">/,/<\\/div>/d' /var/www/html/login.php\r"
+expect "# "
+
+# Also remove with perl for nested divs
+send "perl -i -0pe 's/<div class=\"demo-info\">.*?<\\/div>//gs' /var/www/html/login.php\r"
+expect "# "
+
+# Remove any remaining traces
+send "sed -i '/SQL Injection Demo Lab/d' /var/www/html/login.php\r"
+expect "# "
+send "sed -i '/admin@wallys.com/d' /var/www/html/login.php\r"
+expect "# "
+send "sed -i '/123456/d' /var/www/html/login.php\r"
+expect "# "
+
+# Restart Apache
+send "systemctl restart apache2\r"
+expect "# "
+
+# Verify
+send "grep -c 'demo-info' /var/www/html/login.php\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\nHints removed! Check https://wonkatech.org/login.php"

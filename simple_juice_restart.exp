@@ -1,0 +1,83 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+# SSH and restart containers properly
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "echo 'Restarting all Juice Shop containers properly...'\r"
+expect "# "
+
+# Stop and remove all containers
+send "docker stop \$(docker ps -aq --filter name=juice) 2>/dev/null\r"
+expect "# "
+send "docker rm \$(docker ps -aq --filter name=juice) 2>/dev/null\r"
+expect "# "
+
+# Start containers with simple configuration
+send "echo 'Starting containers...'\r"
+expect "# "
+
+send "docker run -d --name juice-user1 -p 3001:3000 --restart unless-stopped bkimminich/juice-shop\r"
+expect "# "
+send "docker run -d --name juice-user2 -p 3002:3000 --restart unless-stopped bkimminich/juice-shop\r"
+expect "# "
+send "docker run -d --name juice-user3 -p 3003:3000 --restart unless-stopped bkimminich/juice-shop\r"
+expect "# "
+send "docker run -d --name juice-user4 -p 3004:3000 --restart unless-stopped bkimminich/juice-shop\r"
+expect "# "
+send "docker run -d --name juice-user5 -p 3005:3000 --restart unless-stopped bkimminich/juice-shop\r"
+expect "# "
+
+# Wait for containers to start
+send "sleep 10\r"
+expect "# "
+
+# Check status
+send "echo ''\r"
+expect "# "
+send "echo 'Container status:'\r"
+expect "# "
+send "docker ps --format 'table {{.Names}}\\t{{.Status}}' | grep juice\r"
+expect "# "
+
+# Test accessibility
+send "echo ''\r"
+expect "# "
+send "echo 'Testing accessibility:'\r"
+expect "# "
+send "for port in 3001 3002 3003 3004 3005; do echo -n \"Port \$port: \"; curl -s -o /dev/null -w '%{http_code}' http://localhost:\$port && echo ' ✅' || echo ' ❌'; done\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo 'Juice Shop containers are now running!'\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'Note: The GitHub link is part of Juice Shop by default.'\r"
+expect "# "
+send "echo 'To fully remove it would require modifying the source code.'\r"
+expect "# "
+send "echo 'However, it does not affect CTF functionality.'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'All instances are accessible at:'\r"
+expect "# "
+send "echo '• http://155.138.197.128:3001-3005'\r"
+expect "# "
+
+send "exit\r"
+expect eof

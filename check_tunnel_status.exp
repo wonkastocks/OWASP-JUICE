@@ -1,0 +1,35 @@
+#!/usr/bin/expect -f
+
+set timeout 60
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+# Check tunnel connection status
+send "cloudflared tunnel info wonkatech-ctf\r"
+expect "# "
+
+# Check the cloudflared service
+send "systemctl status cloudflared --no-pager | head -20\r"
+expect "# "
+
+# Check if tunnel is actually running
+send "ps aux | grep cloudflared | grep -v grep\r"
+expect "# "
+
+# Check logs for errors
+send "journalctl -u cloudflared -n 20 --no-pager\r"
+expect "# "
+
+# Test local connectivity
+send "curl -I http://localhost:80 2>&1 | head -3\r"
+expect "# "
+
+send "exit\r"
+expect eof

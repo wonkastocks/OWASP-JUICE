@@ -1,0 +1,59 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect "# "
+
+send "echo '=== Testing Reverted Site ==='\r"
+expect "# "
+
+# Test login page is simple version
+send "curl -s http://localhost/login.php | grep -c 'Sign in to your account'\r"
+expect "# "
+
+send "echo ''\r"
+send "echo '=== Test Login Redirects to Dashboard ==='\r"
+expect "# "
+
+# Test SQL injection login redirects to dashboard
+send "curl -s -L -c /tmp/test_cookies.txt -X POST http://localhost/login.php -d \"username=admin' -- &password=x\" | grep -o 'Dashboard\\|Welcome back' | head -2\r"
+expect "# "
+
+send "echo ''\r"
+send "echo '=== Test Dashboard Shows User Details ==='\r"
+expect "# "
+
+# Check dashboard has user details
+send "curl -s -b /tmp/test_cookies.txt http://localhost/dashboard.php | grep -o 'Walter Administrator\\|123 Admin Street\\|San Francisco' | head -3\r"
+expect "# "
+
+send "echo ''\r"
+send "echo '=== Test Main Site is Original ==='\r"
+expect "# "
+
+# Check main site doesn't have session stuff
+send "curl -s http://localhost/ | grep -c 'session_header\\|Welcome back'\r"
+expect "# "
+
+send "echo ''\r"
+send "echo 'Site successfully reverted with login->dashboard flow!'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\nTesting complete!"

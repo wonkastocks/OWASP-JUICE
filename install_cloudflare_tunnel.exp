@@ -1,0 +1,64 @@
+#!/usr/bin/expect -f
+
+set timeout 300
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+# Step 1: Install cloudflared
+send "echo 'Installing Cloudflare Tunnel (cloudflared)...'\r"
+expect "# "
+
+send "curl -L --output cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb\r"
+expect "# "
+
+send "dpkg -i cloudflared.deb\r"
+expect "# "
+
+send "rm cloudflared.deb\r"
+expect "# "
+
+# Step 2: Check if cloudflared is installed
+send "cloudflared version\r"
+expect "# "
+
+# Step 3: Provide instructions for manual authentication
+send "echo ''\r"
+expect "# "
+send "echo '======================================================='\r"
+expect "# "
+send "echo 'CLOUDFLARE TUNNEL SETUP - MANUAL STEPS REQUIRED'\r"
+expect "# "
+send "echo '======================================================='\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'To complete the setup, you need to:'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo '1. SSH into the server: ssh root@155.138.197.128'\r"
+expect "# "
+send "echo '2. Run: cloudflared tunnel login'\r"
+expect "# "
+send "echo '3. Copy the URL it gives you and open it in your browser'\r"
+expect "# "
+send "echo '4. Login to Cloudflare and select wonkatech.org'\r"
+expect "# "
+send "echo '5. After authorization, run: cloudflared tunnel create wonkatech-ctf'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'Then we can configure the tunnel routing.'\r"
+expect "# "
+send "echo '======================================================='\r"
+expect "# "
+
+send "exit\r"
+expect eof

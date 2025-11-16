@@ -1,0 +1,130 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password "\$3cur3P@ssw0rd!"
+set timestamp [exec date +%Y%m%d_%H%M%S]
+set backup_dir "/root/backups/wallys_monkey_parts_$timestamp"
+
+puts "================================================"
+puts "Wally's Monkey Parts - Full Site Backup"
+puts "Timestamp: $timestamp"
+puts "================================================"
+
+# Step 1: Create backup directory
+puts "\nStep 1: Creating backup directory..."
+spawn ssh root@155.138.197.128 "mkdir -p $backup_dir"
+expect {
+    "password:" {
+        send "$password\r"
+        expect eof
+    }
+    timeout {
+        puts "Connection timeout"
+        exit 1
+    }
+}
+
+# Step 2: Backup website files
+puts "\nStep 2: Backing up website files..."
+spawn ssh root@155.138.197.128 "cd /var/www/html && tar -czf $backup_dir/website_files.tar.gz . 2>/dev/null"
+expect {
+    "password:" {
+        send "$password\r"
+        expect eof
+    }
+}
+puts "✓ Website files backed up"
+
+# Step 3: Backup database
+puts "\nStep 3: Backing up MySQL database..."
+spawn ssh root@155.138.197.128 "mysqldump -u root wallysdb > $backup_dir/wallysdb_backup.sql 2>/dev/null && gzip $backup_dir/wallysdb_backup.sql"
+expect {
+    "password:" {
+        send "$password\r"
+        expect eof
+    }
+}
+puts "✓ Database backed up"
+
+# Step 4: Create restore script
+puts "\nStep 4: Creating restore script..."
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "cat > $backup_dir/restore.sh << 'RESTORE_EOF'\r"
+send "#!/bin/bash\r"
+send "\r"
+send "echo '================================================'\r"
+send "echo 'Wally's Monkey Parts - Restore Script'\r"
+send "echo '================================================'\r"
+send "\r"
+send "# Restore website files\r"
+send "echo 'Restoring website files...'\r"
+send "rm -rf /var/www/html/*\r"
+send "tar -xzf website_files.tar.gz -C /var/www/html/\r"
+send "chown -R www-data:www-data /var/www/html/\r"
+send "chmod -R 755 /var/www/html/\r"
+send "\r"
+send "# Restore database\r"
+send "echo 'Restoring database...'\r"
+send "mysql -u root -e 'DROP DATABASE IF EXISTS wallysdb;'\r"
+send "mysql -u root -e 'CREATE DATABASE wallysdb;'\r"
+send "gunzip -c wallysdb_backup.sql.gz | mysql -u root wallysdb\r"
+send "\r"
+send "# Restart services\r"
+send "systemctl restart apache2\r"
+send "systemctl restart mysql\r"
+send "\r"
+send "echo '✓ Restoration complete!'\r"
+send "RESTORE_EOF\r"
+expect "# "
+
+send "chmod +x $backup_dir/restore.sh\r"
+expect "# "
+
+send "exit\r"
+expect eof
+puts "✓ Restore script created"
+
+# Step 5: Create manifest
+puts "\nStep 5: Creating backup manifest..."
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "cat > $backup_dir/MANIFEST.txt << 'MANIFEST_EOF'\r"
+send "Wally's Monkey Parts - Backup Manifest\r"
+send "=======================================\r"
+send "Backup Timestamp: $timestamp\r"
+send "\r"
+send "Contents:\r"
+send "- website_files.tar.gz : Complete /var/www/html directory\r"
+send "- wallysdb_backup.sql.gz : MySQL database dump\r"
+send "- restore.sh : Automated restore script\r"
+send "- MANIFEST.txt : This file\r"
+send "\r"
+send "To restore:\r"
+send "1. cd $backup_dir\r"
+send "2. sudo ./restore.sh\r"
+send "MANIFEST_EOF\r"
+expect "# "
+
+send "exit\r"
+expect eof
+puts "✓ Manifest created"
+
+puts "\n================================================"
+puts "✓ BACKUP COMPLETE!"
+puts "================================================"
+puts "Server backup location: $backup_dir"
+puts "To restore: ssh root@155.138.197.128 'cd $backup_dir && ./restore.sh'"
+puts "================================================"

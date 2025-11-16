@@ -1,0 +1,26 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+# Check current Apache sites
+send "a2dissite 000-default.conf 2>/dev/null\r"
+expect "# "
+
+send "systemctl reload apache2\r"
+expect "# "
+
+# Check the content
+send "cat /var/www/html/index.html | head -20\r"
+expect "# "
+
+send "exit\r"
+expect eof

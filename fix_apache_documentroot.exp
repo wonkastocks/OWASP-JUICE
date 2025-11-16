@@ -1,0 +1,35 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" { send "$password\r" }
+}
+expect "# "
+
+# Check existing config
+send "ls -la /etc/apache2/sites-enabled/\r"
+expect "# "
+
+send "cat /etc/apache2/sites-available/000-default.conf | head -20\r"
+expect "# "
+
+# Update document root to serve CTF platform
+send "sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/ctf-platform|g' /etc/apache2/sites-available/000-default.conf\r"
+expect "# "
+
+send "systemctl restart apache2\r"
+expect "# "
+
+# Verify the change
+send "grep DocumentRoot /etc/apache2/sites-available/000-default.conf\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\n✅ Apache DocumentRoot updated!"
+puts "\n📌 Admin Panel Access:"
+puts "   URL: http://155.138.197.128/admin/admin_login.php"

@@ -1,0 +1,28 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+
+spawn ssh root@66.42.93.220
+expect {
+    "password:" {
+        send "Ocean4Waves\r"
+    }
+}
+
+expect "root@*" {
+    send "systemctl status juice-shop --no-pager\r"
+}
+
+expect "root@*" {
+    send "curl -s http://localhost:3000 | head -20\r"
+}
+
+expect "root@*" {
+    send "netstat -tlnp | grep 3000\r"
+}
+
+expect "root@*" {
+    send "exit\r"
+}
+
+expect eof

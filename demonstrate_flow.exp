@@ -1,0 +1,70 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect "# "
+
+send "echo '=== DEMONSTRATION OF USER FLOW ==='\r"
+expect "# "
+
+send "echo ''\r"
+send "echo 'STEP 1: User visits login page (NO profile link here - user not logged in)'\r"
+expect "# "
+
+send "curl -s http://localhost/login.php | grep -c 'My Profile\\|profile\\|Profile'\r"
+expect "# "
+
+send "echo '(0 means no profile link found - correct!)'\r"
+expect "# "
+
+send "echo ''\r"
+send "echo 'STEP 2: User logs in with SQL injection'\r"
+expect "# "
+
+send "curl -s -c /tmp/demo_cookies.txt -X POST http://localhost/login.php -d \"username=admin' -- &password=x\" -I | grep -o 'Location: order.php'\r"
+expect "# "
+
+send "echo ''\r"
+send "echo 'STEP 3: User is redirected to ORDER page (not dashboard)'\r"
+expect "# "
+
+send "curl -s -b /tmp/demo_cookies.txt http://localhost/order.php | grep -o 'Place Your Order'\r"
+expect "# "
+
+send "echo ''\r"
+send "echo 'STEP 4: ORDER page has profile link in header'\r"
+expect "# "
+
+send "curl -s -b /tmp/demo_cookies.txt http://localhost/order.php | grep -o 'href=\"dashboard.php\".*My Profile' | sed 's/<[^>]*>//g'\r"
+expect "# "
+
+send "echo ''\r"
+send "echo 'STEP 5: Clicking profile link goes to dashboard'\r"
+expect "# "
+
+send "curl -s -b /tmp/demo_cookies.txt http://localhost/dashboard.php | grep -o 'Welcome back.*admin\\|Account Information' | head -1\r"
+expect "# "
+
+send "echo ''\r"
+send "echo 'FLOW SUMMARY:'\r"
+send "echo '1. Login page (no profile) -> 2. Order page (has profile link) -> 3. Dashboard'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\nFlow demonstration complete!"

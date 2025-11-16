@@ -1,0 +1,95 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "cd /var/www/ctf-platform/\r"
+expect "# "
+
+# Backup register.php
+send "cp register.php register.php.backup_final\r"
+expect "# "
+
+# Create the PHP code to add email functionality
+send "cat > update_email.php << 'ENDPHP'\r"
+send "<?php\r"
+send "// Read register.php\r"
+send "\$content = file_get_contents('register.php');\r"
+send "\r"
+send "// Email sending code to add\r"
+send "\$emailCode = '\r"
+send "                    // Send verification email\r"
+send "                    \$to = \$email;\r"
+send "                    \$subject = \"WonkaTech CTF - Email Verification\";\r"
+send "                    \$verificationLink = BASE_URL . \"/verify.php?token=\" . \$verificationToken;\r"
+send "                    \r"
+send "                    \$message = \"Hello \" . \$username . \",\\n\\n\";\r"
+send "                    \$message .= \"Welcome to WonkaTech CTF Platform!\\n\\n\";\r"
+send "                    \$message .= \"Please click the link below to verify your email:\\n\\n\";\r"
+send "                    \$message .= \$verificationLink . \"\\n\\n\";\r"
+send "                    \$message .= \"If you did not register, please ignore this email.\\n\\n\";\r"
+send "                    \$message .= \"Best regards,\\n\";\r"
+send "                    \$message .= \"WonkaTech CTF Team\";\r"
+send "                    \r"
+send "                    \$headers = \"From: noreply@wonkatech.org\\r\\n\";\r"
+send "                    \$headers .= \"Reply-To: noreply@wonkatech.org\\r\\n\";\r"
+send "                    \$headers .= \"X-Mailer: PHP/\" . phpversion();\r"
+send "                    \r"
+send "                    // Send the email\r"
+send "                    if (!@mail(\$to, \$subject, \$message, \$headers)) {\r"
+send "                        error_log(\"Failed to send verification email to: \" . \$email);\r"
+send "                    }\r"
+send "';\r"
+send "\r"
+send "// Find the success message line\r"
+send "\$pattern = '/(\\\\\$success = \"Registration successful! Please check your email to verify your account\\.\";)/';\r"
+send "\r"
+send "// Replace it with success message + email code\r"
+send "\$replacement = '$1' . \"\\n\" . \$emailCode;\r"
+send "\r"
+send "\$content = preg_replace(\$pattern, \$replacement, \$content);\r"
+send "\r"
+send "// Save the updated file\r"
+send "file_put_contents('register.php', \$content);\r"
+send "echo \"Email functionality added to register.php\\n\";\r"
+send "?>\r"
+send "ENDPHP\r"
+expect "# "
+
+# Run the PHP script
+send "php update_email.php\r"
+expect "# "
+
+# Clean up
+send "rm update_email.php\r"
+expect "# "
+
+# Verify PHP syntax
+send "php -l register.php\r"
+expect "# "
+
+# Configure sendmail if needed
+send "echo 'wonkatech.org' > /etc/hostname\r"
+expect "# "
+send "hostname wonkatech.org\r"
+expect "# "
+
+# Restart Apache
+send "systemctl restart apache2\r"
+expect "# "
+
+send "echo 'Email functionality successfully added!'\r"
+expect "# "
+send "echo 'Now testing the registration page...'\r"
+expect "# "
+
+send "exit\r"
+expect eof

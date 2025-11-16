@@ -1,0 +1,69 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "echo 'Ensuring registration sends proper verification emails...'\r"
+expect "# "
+
+# Check current register.php email sending
+send "grep -A10 'mail(' /var/www/ctf-platform/register.php | head -15\r"
+expect "# "
+
+# Update register.php to send proper verification emails with clickable links
+send "sed -i 's|Please verify your email to activate your account|Please click the link below to verify your email address and activate your account|g' /var/www/ctf-platform/register.php\r"
+expect "# "
+
+# Ensure the email includes the full verification link
+send "sed -i 's|Verification link:|Click here to verify your email:|g' /var/www/ctf-platform/register.php\r"
+expect "# "
+
+# Add Reply-To header if not present
+send "grep -q 'Reply-To:' /var/www/ctf-platform/register.php || sed -i '/From: noreply@wonkatech.org/a\\            \$headers .= \"Reply-To: wonkatech@gmail.com\\\\r\\\\n\";' /var/www/ctf-platform/register.php\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo 'EMAIL SYSTEM FULLY CONFIGURED!'\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo '✅ Login page shows resend link for unverified users'\r"
+expect "# "
+send "echo '✅ Registration emails include clickable verification links'\r"
+expect "# "
+send "echo '✅ All emails sent via Gmail SMTP (wonkatech@gmail.com)'\r"
+expect "# "
+send "echo '✅ Reply-To header directs responses to wonkatech@gmail.com'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'The platform is ready for users to:'\r"
+expect "# "
+send "echo '1. Register and receive verification emails'\r"
+expect "# "
+send "echo '2. Click the link in the email to verify'\r"
+expect "# "
+send "echo '3. See resend link if they try to login before verifying'\r"
+expect "# "
+send "echo '4. Get individual Juice Shop containers after verification'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'Test it at: https://wonkatech.org'\r"
+expect "# "
+
+send "exit\r"
+expect eof

@@ -1,0 +1,61 @@
+#!/usr/bin/expect -f
+
+set timeout 60
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+# Remove the nginx container completely
+send "docker rm -f juice-nginx\r"
+expect "# "
+
+# Check if landing page exists
+send "ls -la /var/www/html/index.html\r"
+expect "# "
+
+# Make sure Apache is serving from the right place
+send "cat > /etc/apache2/sites-available/default.conf << 'EOF'\r"
+send "<VirtualHost *:80>\r"
+send "    ServerAdmin webmaster@localhost\r"
+send "    DocumentRoot /var/www/html\r"
+send "    \r"
+send "    <Directory /var/www/html>\r"
+send "        Options Indexes FollowSymLinks\r"
+send "        AllowOverride All\r"
+send "        Require all granted\r"
+send "    </Directory>\r"
+send "    \r"
+send "    ErrorLog /var/log/apache2/error.log\r"
+send "    CustomLog /var/log/apache2/access.log combined\r"
+send "</VirtualHost>\r"
+send "EOF\r"
+expect "# "
+
+# Disable all sites and enable only default
+send "a2dissite juiceshop.conf\r"
+expect "# "
+send "a2dissite default-ssl.conf\r"
+expect "# "
+send "a2ensite default.conf\r"
+expect "# "
+
+# Restart Apache
+send "systemctl restart apache2\r"
+expect "# "
+
+# Test locally
+send "curl -s http://localhost/ | head -5\r"
+expect "# "
+
+# Check what's on port 80
+send "netstat -tlnp | grep :80\r"
+expect "# "
+
+send "exit\r"
+expect eof

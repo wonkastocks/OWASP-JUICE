@@ -1,0 +1,60 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+# Check the config file location
+send "ls -la /etc/cloudflared/\r"
+expect "# "
+
+# Check both config locations
+send "ls -la ~/.cloudflared/\r"
+expect "# "
+
+# Copy our config to the system location
+send "cp ~/.cloudflared/config.yml /etc/cloudflared/config.yml\r"
+expect "# "
+
+# Also copy credentials
+send "cp ~/.cloudflared/*.json /etc/cloudflared/ 2>/dev/null\r"
+expect "# "
+
+# Fix the credentials path in the system config
+send "TUNNEL_UUID=\$(cloudflared tunnel list | grep wonkatech-ctf | awk '{print \$1}')\r"
+expect "# "
+
+send "sed -i \"s|credentials-file:.*|credentials-file: /etc/cloudflared/\$TUNNEL_UUID.json|\" /etc/cloudflared/config.yml\r"
+expect "# "
+
+# Verify the config
+send "head -5 /etc/cloudflared/config.yml\r"
+expect "# "
+
+# Restart cloudflared
+send "systemctl restart cloudflared\r"
+expect "# "
+
+send "sleep 2\r"
+expect "# "
+
+# Check status
+send "systemctl status cloudflared --no-pager | head -10\r"
+expect "# "
+
+# Test the tunnel
+send "cloudflared tunnel info wonkatech-ctf\r"
+expect "# "
+
+send "echo 'Tunnel config fixed!'\r"
+expect "# "
+
+send "exit\r"
+expect eof

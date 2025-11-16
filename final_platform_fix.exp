@@ -1,0 +1,49 @@
+#!/usr/bin/expect -f
+
+set timeout 60
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+# Check what's on port 80
+send "netstat -tlnp | grep :80\r"
+expect "# "
+
+# Stop K3s if it's running
+send "systemctl stop k3s 2>/dev/null\r"
+expect "# "
+send "systemctl disable k3s 2>/dev/null\r"
+expect "# "
+
+# Kill any kubectl port-forward
+send "pkill -f 'kubectl port-forward' 2>/dev/null\r"
+expect "# "
+
+# Check files exist
+send "ls -la /var/www/ctf-platform/\r"
+expect "# "
+
+# Make sure Apache is serving the right directory
+send "grep DocumentRoot /etc/apache2/sites-enabled/*.conf\r"
+expect "# "
+
+# Test PHP directly
+send "php -r 'echo \"PHP is working\\n\";'\r"
+expect "# "
+
+# Create a simple test page
+send "echo 'Hello World' > /var/www/ctf-platform/hello.html\r"
+expect "# "
+
+# Test it
+send "curl http://localhost/hello.html\r"
+expect "# "
+
+send "exit\r"
+expect eof

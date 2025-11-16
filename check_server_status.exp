@@ -1,0 +1,24 @@
+#!/usr/bin/expect -f
+set timeout 30
+
+spawn scp /Users/walterbarr_1/sql-injection-lab/check_and_install.sh root@155.138.197.128:/tmp/
+expect {
+    "password:" {
+        send "\\\$Hg5sD&8Lp@9\r"
+        expect eof
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "\\\$Hg5sD&8Lp@9\r"
+        expect eof
+    }
+}
+
+spawn ssh root@155.138.197.128 "bash /tmp/check_and_install.sh"
+expect {
+    "password:" {
+        send "\\\$Hg5sD&8Lp@9\r"
+        interact
+    }
+}

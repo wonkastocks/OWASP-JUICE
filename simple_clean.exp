@@ -1,0 +1,87 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect "# "
+
+# Remove everything except the header banner and login form
+send "sed -i '/<nav class=\"main-nav\">/,/<\\/nav>/d' /var/www/html/login.php\r"
+expect "# "
+
+send "sed -i '/<header>/,/<\\/header>/d' /var/www/html/login.php\r"
+expect "# "
+
+send "sed -i '/<div class=\"categories-bar\">/,/<\\/div>/d' /var/www/html/login.php\r"
+expect "# "
+
+send "sed -i '/<footer>/,/<\\/footer>/d' /var/www/html/login.php\r"
+expect "# "
+
+send "sed -i '/<div class=\"footer\">/,/<\\/div>/d' /var/www/html/login.php\r"
+expect "# "
+
+send "sed -i '/<div class=\"footer-section\">/,/<\\/div>/d' /var/www/html/login.php\r"
+expect "# "
+
+# Remove shop sections
+send "sed -i '/Shop/,/Customer Care/d' /var/www/html/login.php\r"
+expect "# "
+
+# Remove copyright
+send "sed -i '/© 2025/d' /var/www/html/login.php\r"
+expect "# "
+
+send "sed -i '/Wally.s Monkey Parts/d' /var/www/html/login.php\r"
+expect "# "
+
+send "sed -i '/For entertainment purposes/d' /var/www/html/login.php\r"
+expect "# "
+
+send "sed -i '/Your trusted source/d' /var/www/html/login.php\r"
+expect "# "
+
+send "sed -i '/Quick Links/d' /var/www/html/login.php\r"
+expect "# "
+
+send "sed -i '/Privacy Policy/d' /var/www/html/login.php\r"
+expect "# "
+
+send "sed -i '/Terms of Service/d' /var/www/html/login.php\r"
+expect "# "
+
+send "sed -i '/Support/d' /var/www/html/login.php\r"
+expect "# "
+
+send "sed -i '/Contact/d' /var/www/html/login.php\r"
+expect "# "
+
+send "sed -i '/Email:/d' /var/www/html/login.php\r"
+expect "# "
+
+send "sed -i '/Phone:/d' /var/www/html/login.php\r"
+expect "# "
+
+send "systemctl restart apache2\r"
+expect "# "
+
+send "echo 'Page cleaned!'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\nPage cleaned!"

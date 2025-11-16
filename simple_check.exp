@@ -1,0 +1,34 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "\\$\\$R00tbeer02\r"
+    }
+    "Are you sure you want to continue connecting" {
+        send "yes\r"
+        expect "password:"
+        send "\\$\\$R00tbeer02\r"
+    }
+}
+
+expect "root@*"
+
+# Quick checks
+send "echo 'Connected successfully!'\r"
+expect "root@*"
+
+send "docker ps | grep juice | wc -l\r"
+expect "root@*"
+
+send "ls /var/www/html/admin/ 2>/dev/null | head -5\r"
+expect "root@*"
+
+send "service cloudflared status 2>/dev/null || rc-service cloudflared status 2>/dev/null || ps aux | grep cloudflared | grep -v grep\r"
+expect "root@*"
+
+send "exit\r"
+expect eof

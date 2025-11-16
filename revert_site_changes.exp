@@ -1,0 +1,61 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect "# "
+
+send "echo 'Reverting site changes...'\r"
+expect "# "
+
+# Check for the most recent index.php backup
+send "ls -lt /var/www/html/index.php.backup.* | head -1\r"
+expect "# "
+
+# Restore the original index.php from backup
+send "cp /var/www/html/index.php.backup.20* /var/www/html/index.php\r"
+expect "# "
+
+# The login.php should stay as logintest.php (minimal version that redirects to dashboard)
+# Dashboard should stay as the enhanced version with user details
+send "echo 'Login flow remains: login.php -> dashboard.php'\r"
+expect "# "
+
+# Set permissions
+send "chown www-data:www-data /var/www/html/index.php\r"
+expect "# "
+
+send "chmod 644 /var/www/html/index.php\r"
+expect "# "
+
+# Remove the session_header.php since we're not using it
+send "rm -f /var/www/html/session_header.php\r"
+expect "# "
+
+# Restart services
+send "systemctl restart apache2\r"
+expect "# "
+
+send "systemctl restart php8.1-fpm\r"
+expect "# "
+
+send "echo 'Site reverted. Login still redirects to dashboard.'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\nSite reverted to original!"

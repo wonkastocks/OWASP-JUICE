@@ -1,0 +1,73 @@
+#!/usr/bin/expect -f
+
+set timeout 60
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+# Navigate to the platform directory
+send "cd /var/www/ctf-platform/\r"
+expect "# "
+
+# Create a simple PHP update script
+send "cat > tunnel_update.php << 'ENDPHP'\r"
+send "<?php\r"
+send "// Update dashboard.php for Cloudflare Tunnel subdomains\r"
+send "\\\$file = 'dashboard.php';\r"
+send "\\\$content = file_get_contents(\\\$file);\r"
+send "\r"
+send "// Find and replace the instance URL logic\r"
+send "\\\$search = '\\\$instanceUrl = \"http://155.138.197.128:\" . \\\$port;';\r"
+send "\\\$replace = '\\\$instanceNumber = \\\$port - 3000; \\\$instanceUrl = \"https://instance\" . \\\$instanceNumber . \".wonkatech.org\";';\r"
+send "\r"
+send "\\\$content = str_replace(\\\$search, \\\$replace, \\\$content);\r"
+send "file_put_contents(\\\$file, \\\$content);\r"
+send "\r"
+send "echo \"Dashboard updated successfully!\\n\";\r"
+send "?>\r"
+send "ENDPHP\r"
+expect "# "
+
+# Run the PHP script
+send "php tunnel_update.php\r"
+expect "# "
+
+# Clean up
+send "rm tunnel_update.php\r"
+expect "# "
+
+# Verify the update
+send "grep instanceUrl dashboard.php | head -1\r"
+expect "# "
+
+# Test the tunnel
+send "echo ''\r"
+expect "# "
+send "echo 'Testing tunnel connectivity...'\r"
+expect "# "
+send "curl -s -I https://wonkatech.org | head -3\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo 'Tunnel setup complete!'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'Platform: https://wonkatech.org'\r"
+expect "# "
+send "echo 'Instances: https://instance1.wonkatech.org through https://instance20.wonkatech.org'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'REMINDER: Delete the A record in Cloudflare DNS!'\r"
+expect "# "
+
+send "exit\r"
+expect eof

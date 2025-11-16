@@ -1,0 +1,76 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+# Escape the password properly
+set password "\$R00tbeer02"
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect "# "
+
+# Create a Python script to remove footers
+send "cat > /tmp/remove_footers.py << 'ENDOFSCRIPT'\r"
+send "#!/usr/bin/env python3\r"
+send "import re\r"
+send "\r"
+send "# Read the login.php file\r"
+send "with open('/var/www/html/login.php', 'r') as f:\r"
+send "    content = f.read()\r"
+send "\r"
+send "# Remove footer sections\r"
+send "content = re.sub(r'<footer.*?</footer>', '', content, flags=re.DOTALL)\r"
+send "content = re.sub(r'<div class=\"footer.*?</div>', '', content, flags=re.DOTALL)\r"
+send "\r"
+send "# Remove shop/about/customer care sections\r"
+send "patterns = [\r"
+send "    r'#### 🛍️ Shop.*?#### ℹ️ About',\r"
+send "    r'#### ℹ️ About.*?#### 🎯 Customer Care',\r"
+send "    r'#### 🎯 Customer Care.*?(?=</|$)',\r"
+send "    r'### Wally.*?s Monkey Parts.*?Phone: 1-800-MONKEY-1',\r"
+send "    r'#### Quick Links.*?\\[Support\\]\\(.*?\\)',\r"
+send "    r'#### Contact.*?Phone: 1-800-MONKEY-1',\r"
+send "    r'© 2025.*?For entertainment purposes only!',\r"
+send "    r'Your trusted source for quality.*?since 2020',\r"
+send "]\r"
+send "\r"
+send "for pattern in patterns:\r"
+send "    content = re.sub(pattern, '', content, flags=re.DOTALL)\r"
+send "\r"
+send "# Clean up extra whitespace\r"
+send "content = re.sub(r'\\n\\s*\\n\\s*\\n', '\\n\\n', content)\r"
+send "\r"
+send "# Write back\r"
+send "with open('/var/www/html/login.php', 'w') as f:\r"
+send "    f.write(content)\r"
+send "\r"
+send "print('Footers removed!')\r"
+send "ENDOFSCRIPT\r"
+
+expect "# "
+
+# Run the Python script
+send "python3 /tmp/remove_footers.py\r"
+expect "# "
+
+# Restart Apache
+send "systemctl restart apache2\r"
+expect "# "
+
+send "echo 'Footer removal complete!'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\nFooter removed successfully!"

@@ -1,0 +1,26 @@
+#!/usr/bin/expect -f
+
+set timeout 60
+set password {$$R00tbeer02}
+
+# First copy the backup script
+spawn scp /tmp/backup_commands.sh root@155.138.197.128:/tmp/backup_commands.sh
+expect {
+    "(yes/no)?" {
+        send "yes\r"
+        exp_continue
+    }
+    "password:" {
+        send "$password\r"
+    }
+}
+expect eof
+
+# Now run the backup script
+spawn ssh root@155.138.197.128 "chmod +x /tmp/backup_commands.sh && /tmp/backup_commands.sh"
+expect {
+    "password:" {
+        send "$password\r"
+    }
+}
+expect eof

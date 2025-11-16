@@ -1,0 +1,69 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+# SCP the file
+spawn scp /Users/walterbarr_1/sql-injection-lab/logintest_fixed.php root@155.138.197.128:/tmp/logintest.php
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect eof
+
+# SSH and deploy
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect "# "
+
+# Backup current and deploy new
+send "cp /var/www/html/logintest.php /var/www/html/logintest.php.bak\r"
+expect "# "
+
+send "cp /tmp/logintest.php /var/www/html/logintest.php\r"
+expect "# "
+
+# Set permissions
+send "chown www-data:www-data /var/www/html/logintest.php\r"
+expect "# "
+
+send "chmod 644 /var/www/html/logintest.php\r"
+expect "# "
+
+# Clear any opcache
+send "systemctl restart php8.1-fpm\r"
+expect "# "
+
+send "systemctl restart apache2\r"
+expect "# "
+
+# Test with a bad SQL injection that would normally cause error
+send "curl -X POST http://localhost/logintest.php -d \"username=admin'test&password=test\" 2>/dev/null | grep -E '(Login failed|Fatal error)'\r"
+expect "# "
+
+send "echo 'Fixed version deployed!'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\nFixed logintest.php deployed!"

@@ -1,0 +1,53 @@
+DOM XSS CHALLENGE - STEP BY STEP INSTRUCTIONS
+=============================================
+
+WHERE TO TYPE THE JAVASCRIPT CODE:
+
+1. OPEN YOUR BROWSER
+   - Go to: https://juice3.wonkatech.org
+   - Make sure you're on the main Juice Shop page
+
+2. OPEN THE DEVELOPER CONSOLE
+   - Press F12 key
+   OR
+   - Mac: Press Cmd + Option + J
+   - Windows/Linux: Press Ctrl + Shift + J
+   
+   A panel will open at the bottom or side of your browser
+
+3. CLICK ON THE "CONSOLE" TAB
+   - You'll see tabs like: Elements, Console, Sources, Network
+   - Click on "Console"
+   - You'll see a prompt that looks like: >
+
+4. TYPE OR PASTE THE CODE
+   At the > prompt, copy and paste this EXACT code:
+   
+   window.location.href = "#/search?q=<img src=x onerror=prompt(1)>"
+
+5. PRESS ENTER KEY
+   - A popup dialog will appear
+   - Click OK or press Enter
+   - The challenge will be marked as SOLVED!
+
+ALTERNATIVE METHOD (if above doesn't work):
+--------------------------------------------
+In the same Console, paste this instead:
+
+var searchBox = document.querySelector('input[type="search"]');
+searchBox.value = '<img src=x onerror=prompt(1)>';
+searchBox.form.submit();
+
+Then press Enter.
+
+VISUAL GUIDE:
+-------------
+The Console looks like this:
+┌─────────────────────────────────────┐
+│ Elements | Console | Sources | ...  │
+├─────────────────────────────────────┤
+│ > _                                 │  <- Type here!
+│                                     │
+└─────────────────────────────────────┘
+
+That's where you type the JavaScript code!

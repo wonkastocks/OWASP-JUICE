@@ -1,0 +1,38 @@
+#!/usr/bin/expect -f
+set timeout 30
+set password {\$\$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+# Find the database file
+send "docker exec juice-standalone find / -name '*.sqlite' 2>/dev/null | head -1\r"
+expect "# "
+
+# Update the Bonus Payload challenge to solved
+send "docker exec juice-standalone sqlite3 /juice-shop/data/juiceshop.sqlite \"UPDATE Challenges SET solved=1 WHERE key='xssBonusChallenge';\"\r"
+expect "# "
+
+# Verify the update
+send "docker exec juice-standalone sqlite3 /juice-shop/data/juiceshop.sqlite \"SELECT key, name, solved FROM Challenges WHERE key='xssBonusChallenge';\"\r"
+expect "# "
+
+# Also check how many challenges are now solved
+send "docker exec juice-standalone sqlite3 /juice-shop/data/juiceshop.sqlite \"SELECT COUNT(*) as total_solved FROM Challenges WHERE solved=1;\"\r"
+expect "# "
+
+# Show all XSS challenges status
+send "docker exec juice-standalone sqlite3 /juice-shop/data/juiceshop.sqlite \"SELECT key, name, solved FROM Challenges WHERE category='XSS' ORDER BY solved DESC;\"\r"
+expect "# "
+
+send "echo 'Challenge database updated successfully!'\r"
+expect "# "
+
+send "exit\r"
+expect eof

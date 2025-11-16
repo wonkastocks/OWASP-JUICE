@@ -1,0 +1,64 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect "# "
+
+send "echo 'Updating user information with detailed data...'\r"
+expect "# "
+
+# Update admin user with full details
+send "mysql -u root wallys_monkey_parts -e \"UPDATE users SET full_name = 'Walter Administrator', address = '123 Admin Street', city = 'San Francisco', state = 'CA', zip = '94105', phone = '(415) 555-0100' WHERE username = 'admin';\"\r"
+expect "# "
+
+# Update john_doe with full details
+send "mysql -u root wallys_monkey_parts -e \"UPDATE users SET full_name = 'John Michael Doe', address = '456 Oak Avenue', city = 'New York', state = 'NY', zip = '10001', phone = '(212) 555-0145' WHERE username = 'john_doe';\"\r"
+expect "# "
+
+# Update jane_smith
+send "mysql -u root wallys_monkey_parts -e \"UPDATE users SET full_name = 'Jane Elizabeth Smith', address = '789 Maple Drive', city = 'Los Angeles', state = 'CA', zip = '90001', phone = '(310) 555-0167' WHERE username = 'jane_smith';\"\r"
+expect "# "
+
+# Update test_user
+send "mysql -u root wallys_monkey_parts -e \"UPDATE users SET full_name = 'Test User Account', address = '321 Test Lane', city = 'Chicago', state = 'IL', zip = '60601', phone = '(312) 555-0189' WHERE username = 'test_user';\"\r"
+expect "# "
+
+# Update demo user
+send "mysql -u root wallys_monkey_parts -e \"UPDATE users SET full_name = 'Demo Account User', address = '654 Demo Boulevard', city = 'Houston', state = 'TX', zip = '77001', phone = '(713) 555-0123' WHERE username = 'demo';\"\r"
+expect "# "
+
+# Add more realistic data to a few more users
+send "mysql -u root wallys_monkey_parts -e \"UPDATE users SET full_name = 'William Robert Carter', address = '852 Pine Street', city = 'Seattle', state = 'WA', zip = '98101', phone = '(206) 555-0234' WHERE id = 11;\"\r"
+expect "# "
+
+send "mysql -u root wallys_monkey_parts -e \"UPDATE users SET full_name = 'Karen Michelle Flores', address = '963 Cedar Road', city = 'Boston', state = 'MA', zip = '02101', phone = '(617) 555-0345' WHERE id = 12;\"\r"
+expect "# "
+
+send "mysql -u root wallys_monkey_parts -e \"UPDATE users SET full_name = 'Ruth Ann Young', address = '741 Birch Way', city = 'Phoenix', state = 'AZ', zip = '85001', phone = '(602) 555-0456' WHERE id = 13;\"\r"
+expect "# "
+
+# Check the updated data
+send "mysql -u root wallys_monkey_parts -e \"SELECT username, full_name, address, city, state, zip, phone FROM users WHERE username IN ('admin', 'john_doe', 'demo') LIMIT 3;\"\r"
+expect "# "
+
+send "echo 'User data updated successfully!'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\nUser data has been updated!"

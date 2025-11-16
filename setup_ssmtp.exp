@@ -1,0 +1,82 @@
+#!/usr/bin/expect -f
+
+set timeout 300
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+# Stop sendmail and install ssmtp (simpler SMTP client)
+send "echo 'Installing ssmtp for email delivery...'\r"
+expect "# "
+send "systemctl stop sendmail\r"
+expect "# "
+send "systemctl disable sendmail\r"
+expect "# "
+send "apt-get update\r"
+expect "# "
+send "apt-get install -y ssmtp mailutils\r"
+expect "# "
+
+# Configure ssmtp for Gmail
+send "cat > /etc/ssmtp/ssmtp.conf << 'EOF'\r"
+send "# Gmail SMTP configuration\r"
+send "root=wonkastocks@gmail.com\r"
+send "mailhub=smtp.gmail.com:587\r"
+send "FromLineOverride=YES\r"
+send "AuthUser=wonkastocks@gmail.com\r"
+send "AuthPass=YOUR_APP_PASSWORD_HERE\r"
+send "UseSTARTTLS=YES\r"
+send "hostname=wonkatech.org\r"
+send "EOF\r"
+expect "# "
+
+# Configure mail aliases
+send "cat > /etc/ssmtp/revaliases << 'EOF'\r"
+send "root:wonkastocks@gmail.com:smtp.gmail.com:587\r"
+send "www-data:wonkastocks@gmail.com:smtp.gmail.com:587\r"
+send "EOF\r"
+expect "# "
+
+# Update PHP to use ssmtp
+send "sed -i 's|sendmail_path.*|sendmail_path = /usr/sbin/ssmtp -t|' /etc/php/8.1/apache2/php.ini\r"
+expect "# "
+
+# Restart Apache
+send "systemctl restart apache2\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo '==========================================='\r"
+expect "# "
+send "echo 'IMPORTANT: Gmail requires an App Password!'\r"
+expect "# "
+send "echo '==========================================='\r"
+expect "# "
+send "echo '1. Go to: https://myaccount.google.com/apppasswords'\r"
+expect "# "
+send "echo '2. Sign in to wonkastocks@gmail.com'\r"
+expect "# "
+send "echo '3. Generate an app password for \"Mail\"'\r"
+expect "# "
+send "echo '4. Edit /etc/ssmtp/ssmtp.conf and replace YOUR_APP_PASSWORD_HERE'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'For now, using local mail storage instead...'\r"
+expect "# "
+
+# Set up local mail storage for testing
+send "mkdir -p /var/mail/test\r"
+expect "# "
+send "chmod 777 /var/mail/test\r"
+expect "# "
+
+send "exit\r"
+expect eof

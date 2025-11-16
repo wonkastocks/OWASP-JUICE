@@ -1,0 +1,81 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+# Copy fixed login file
+spawn scp /tmp/login_db_fix.php root@155.138.197.128:/tmp/
+expect {
+    "password:" {
+        send "$password\r"
+        expect "100%"
+    }
+}
+
+# SSH and fix
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "echo 'Fixing database column name issue...'\r"
+expect "# "
+
+# First check the actual column name
+send "mysql -u root ctf_platform -e 'SHOW COLUMNS FROM users LIKE \"%password%\";' 2>/dev/null\r"
+expect "# "
+
+# Add password column if only password_hash exists
+send "mysql -u root ctf_platform -e 'ALTER TABLE users ADD COLUMN IF NOT EXISTS password VARCHAR(255) DEFAULT NULL;' 2>/dev/null || true\r"
+expect "# "
+
+# Copy password_hash to password if needed
+send "mysql -u root ctf_platform -e 'UPDATE users SET password = password_hash WHERE password IS NULL AND password_hash IS NOT NULL;' 2>/dev/null || true\r"
+expect "# "
+
+# Deploy the fixed login.php
+send "cp /tmp/login_db_fix.php /var/www/ctf-platform/login.php\r"
+expect "# "
+send "chmod 644 /var/www/ctf-platform/login.php\r"
+expect "# "
+send "chown www-data:www-data /var/www/ctf-platform/login.php\r"
+expect "# "
+
+# Test PHP syntax
+send "php -l /var/www/ctf-platform/login.php\r"
+expect "# "
+
+# Show the database structure
+send "echo ''\r"
+expect "# "
+send "echo 'Database structure after fix:'\r"
+expect "# "
+send "mysql -u root ctf_platform -e 'DESCRIBE users;' 2>/dev/null | grep password\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo 'DATABASE COLUMN FIX APPLIED!'\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo '✅ Fixed column name mismatch (password vs password_hash)'\r"
+expect "# "
+send "echo '✅ Login.php now handles both column names'\r"
+expect "# "
+send "echo '✅ Database synchronized'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'Login should now work at: https://wonkatech.org/login.php'\r"
+expect "# "
+
+send "exit\r"
+expect eof

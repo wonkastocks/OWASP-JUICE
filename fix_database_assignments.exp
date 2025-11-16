@@ -1,0 +1,48 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+    }
+}
+
+expect "# "
+
+# Fix the database schema and assignments
+send "mysql -u root ctf_platform << 'EOF'
+-- Check if allocated column exists
+SHOW COLUMNS FROM containers LIKE 'allocated';
+
+-- Update assignments based on the existing schema
+UPDATE containers SET user_id = NULL;
+
+-- Assign containers based on users table
+UPDATE containers c
+JOIN users u ON u.instance_url = CONCAT('https://juice', c.container_id, '.wonkatech.org')
+SET c.user_id = u.id
+WHERE u.instance_url IS NOT NULL;
+
+-- Update container status
+UPDATE containers SET status = 'running';
+
+-- Show current assignments
+SELECT 
+    c.container_id, 
+    c.container_name, 
+    u.username,
+    c.status
+FROM containers c
+LEFT JOIN users u ON c.user_id = u.id
+ORDER BY c.container_id;
+EOF\r"
+expect "# "
+
+send "echo 'Database assignments updated successfully'\r"
+expect "# "
+
+send "exit\r"
+expect eof

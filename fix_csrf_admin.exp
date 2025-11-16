@@ -1,0 +1,121 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+
+# Connect to server
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "\$\$R00tbeer02\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "\$\$R00tbeer02\r"
+    }
+}
+
+expect "root@*"
+
+# Check the current admin_login.php for CSRF implementation
+send "cat /var/www/html/admin/admin_login.php | grep -A5 -B5 csrf\r"
+expect "root@*"
+
+# Create a fixed version of admin_login.php
+send "cat > /var/www/html/admin/admin_login_fixed.php << 'ENDPHP'\r"
+send "<?php\r"
+send "session_start();\r"
+send "require_once 'config.php';\r"
+send "\r"
+send "// Generate CSRF token if it doesn't exist\r"
+send "if (empty(\\\$_SESSION['csrf_token'])) {\r"
+send "    \\\$_SESSION['csrf_token'] = bin2hex(random_bytes(32));\r"
+send "}\r"
+send "\r"
+send "// Handle login submission\r"
+send "if (\\\$_SERVER['REQUEST_METHOD'] === 'POST') {\r"
+send "    // Check CSRF token\r"
+send "    if (!isset(\\\$_POST['csrf_token']) || \\\$_POST['csrf_token'] !== \\\$_SESSION['csrf_token']) {\r"
+send "        \\\$error = 'Invalid security token. Please try again.';\r"
+send "    } else {\r"
+send "        \\\$email = \\\$_POST['email'] ?? '';\r"
+send "        \\\$password = \\\$_POST['password'] ?? '';\r"
+send "        \r"
+send "        // Verify credentials\r"
+send "        if (\\\$email === ADMIN_EMAIL && password_verify(\\\$password, ADMIN_PASSWORD_HASH)) {\r"
+send "            \\\$_SESSION['admin_logged_in'] = true;\r"
+send "            \\\$_SESSION['admin_email'] = \\\$email;\r"
+send "            \\\$_SESSION['login_time'] = time();\r"
+send "            header('Location: index.php');\r"
+send "            exit();\r"
+send "        } else {\r"
+send "            \\\$error = 'Invalid email or password';\r"
+send "        }\r"
+send "    }\r"
+send "}\r"
+send "?>\r"
+send "<!DOCTYPE html>\r"
+send "<html lang=\"en\">\r"
+send "<head>\r"
+send "    <meta charset=\"UTF-8\">\r"
+send "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\r"
+send "    <title>Admin Login - WonkaTech CTF</title>\r"
+send "    <link rel=\"stylesheet\" href=\"style.css\">\r"
+send "</head>\r"
+send "<body>\r"
+send "    <div class=\"login-container\">\r"
+send "        <div class=\"login-box\">\r"
+send "            <div class=\"login-header\">\r"
+send "                <div class=\"lock-icon\">🔐</div>\r"
+send "                <h1>WonkaTech Admin</h1>\r"
+send "                <p>CTF Platform Management</p>\r"
+send "            </div>\r"
+send "            <?php if (isset(\\\$error)): ?>\r"
+send "                <div class=\"error-message\"><?php echo htmlspecialchars(\\\$error); ?></div>\r"
+send "            <?php endif; ?>\r"
+send "            <form method=\"POST\" class=\"login-form\">\r"
+send "                <input type=\"hidden\" name=\"csrf_token\" value=\"<?php echo htmlspecialchars(\\\$_SESSION['csrf_token']); ?>\">\r"
+send "                <div class=\"form-group\">\r"
+send "                    <label for=\"email\">Admin Email</label>\r"
+send "                    <input type=\"email\" id=\"email\" name=\"email\" required>\r"
+send "                </div>\r"
+send "                <div class=\"form-group\">\r"
+send "                    <label for=\"password\">Password</label>\r"
+send "                    <input type=\"password\" id=\"password\" name=\"password\" required>\r"
+send "                </div>\r"
+send "                <button type=\"submit\" class=\"login-btn\">Login to Admin Panel</button>\r"
+send "            </form>\r"
+send "            <div class=\"back-link\">\r"
+send "                <a href=\"/\">← Back to Main Site</a>\r"
+send "            </div>\r"
+send "        </div>\r"
+send "    </div>\r"
+send "</body>\r"
+send "</html>\r"
+send "ENDPHP\r"
+expect "root@*"
+
+# Backup the original and replace with fixed version
+send "cp /var/www/html/admin/admin_login.php /var/www/html/admin/admin_login.php.backup\r"
+expect "root@*"
+
+send "cp /var/www/html/admin/admin_login_fixed.php /var/www/html/admin/admin_login.php\r"
+expect "root@*"
+
+# Set correct permissions
+send "chown www-data:www-data /var/www/html/admin/admin_login.php\r"
+expect "root@*"
+
+send "chmod 755 /var/www/html/admin/admin_login.php\r"
+expect "root@*"
+
+# Restart Apache to clear any session issues
+send "systemctl restart apache2\r"
+expect "root@*"
+
+send "echo 'CSRF token issue fixed. Admin login should work now.'\r"
+expect "root@*"
+
+send "exit\r"
+expect eof

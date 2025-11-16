@@ -1,0 +1,98 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect "# "
+
+# Remove all footer sections and related content
+send "sed -i '/<footer/,/<\\/footer>/d' /var/www/html/login.php\r"
+expect "# "
+
+# Remove footer divs
+send "sed -i '/<div class=\"footer/,/<\\/div.*footer/d' /var/www/html/login.php\r"
+expect "# "
+
+# Remove shop section
+send "sed -i '/🛍️ Shop/,/🛡️ Product Care/d' /var/www/html/login.php\r"
+expect "# "
+
+# Remove About section
+send "sed -i '/ℹ️ About/,/⭐ Reviews/d' /var/www/html/login.php\r"
+expect "# "
+
+# Remove Customer Care section
+send "sed -i '/🎯 Customer Care/,/🛡️ Product Care/d' /var/www/html/login.php\r"
+expect "# "
+
+# Remove copyright line
+send "sed -i '/© 2025.*Wally.*Monkey Parts/d' /var/www/html/login.php\r"
+expect "# "
+
+# Remove entertainment disclaimer
+send "sed -i '/For entertainment purposes only/d' /var/www/html/login.php\r"
+expect "# "
+
+# Remove Wally's Monkey Parts footer section
+send "sed -i '/### Wally.*s Monkey Parts/,/Phone: 1-800-MONKEY-1/d' /var/www/html/login.php\r"
+expect "# "
+
+# Remove Quick Links section
+send "sed -i '/#### Quick Links/,/\\[Support\\]/d' /var/www/html/login.php\r"
+expect "# "
+
+# Remove Contact section in footer
+send "sed -i '/#### Contact/,/Phone: 1-800-MONKEY-1/d' /var/www/html/login.php\r"
+expect "# "
+
+# Remove any remaining footer-related content
+send "sed -i '/Your trusted source for quality/d' /var/www/html/login.php\r"
+expect "# "
+
+send "sed -i '/Privacy Policy.*Terms of Service.*Support/d' /var/www/html/login.php\r"
+expect "# "
+
+send "sed -i '/support@wallysmonkeyparts.com/d' /var/www/html/login.php\r"
+expect "# "
+
+send "sed -i '/1-800-MONKEY-1/d' /var/www/html/login.php\r"
+expect "# "
+
+# Remove any h4 tags with footer content
+send "sed -i '/<h4>.*Shop.*<\\/h4>/,/<\\/ul>/d' /var/www/html/login.php\r"
+expect "# "
+
+send "sed -i '/<h4>.*About.*<\\/h4>/,/<\\/ul>/d' /var/www/html/login.php\r"
+expect "# "
+
+send "sed -i '/<h4>.*Customer Care.*<\\/h4>/,/<\\/ul>/d' /var/www/html/login.php\r"
+expect "# "
+
+# Clean up any empty lines left behind
+send "sed -i '/^[[:space:]]*$/d' /var/www/html/login.php\r"
+expect "# "
+
+# Restart Apache
+send "systemctl restart apache2\r"
+expect "# "
+
+send "echo 'All footers removed!'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\nFooters removed successfully!"

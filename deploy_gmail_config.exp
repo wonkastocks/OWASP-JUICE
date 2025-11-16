@@ -1,0 +1,95 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+# Copy config files
+spawn scp /tmp/main.cf /tmp/sasl_passwd /tmp/generic root@155.138.197.128:/tmp/
+expect {
+    "password:" {
+        send "$password\r"
+        expect "100%"
+    }
+}
+
+# SSH and deploy
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "echo 'Deploying Gmail SMTP configuration...'\r"
+expect "# "
+
+# Deploy the config files
+send "cp /tmp/main.cf /etc/postfix/main.cf\r"
+expect "# "
+send "cp /tmp/sasl_passwd /etc/postfix/sasl_passwd\r"
+expect "# "
+send "cp /tmp/generic /etc/postfix/generic\r"
+expect "# "
+
+# Set permissions
+send "chmod 600 /etc/postfix/sasl_passwd\r"
+expect "# "
+send "postmap /etc/postfix/sasl_passwd\r"
+expect "# "
+send "postmap /etc/postfix/generic\r"
+expect "# "
+
+# Clear the old mail queue
+send "postsuper -d ALL\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo 'GMAIL SMTP CONFIGURATION DEPLOYED!'\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo '📋 NEXT STEPS:'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo '1. Generate Gmail App Password:'\r"
+expect "# "
+send "echo '   • Go to: https://myaccount.google.com/apppasswords'\r"
+expect "# "
+send "echo '   • Sign in with wonkatech@gmail.com'\r"
+expect "# "
+send "echo '   • Enable 2-factor authentication if not already enabled'\r"
+expect "# "
+send "echo '   • Click \"Select app\" → Choose \"Mail\"'\r"
+expect "# "
+send "echo '   • Click \"Select device\" → Choose \"Other (Custom name)\"'\r"
+expect "# "
+send "echo '   • Enter: WonkaTech CTF Platform'\r"
+expect "# "
+send "echo '   • Click \"Generate\"'\r"
+expect "# "
+send "echo '   • Copy the 16-character password (looks like: xxxx xxxx xxxx xxxx)'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo '2. Once you have the app password, tell me and I will:'\r"
+expect "# "
+send "echo '   • Update the configuration with your password'\r"
+expect "# "
+send "echo '   • Restart postfix'\r"
+expect "# "
+send "echo '   • Send a test email to verify it works'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'The configuration is ready and waiting for the app password!'\r"
+expect "# "
+
+send "exit\r"
+expect eof

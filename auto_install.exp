@@ -1,0 +1,199 @@
+#!/usr/bin/expect -f
+set timeout 600
+log_user 1
+
+# Correct password with double dollar
+set pass {\$\$R00tbeer02}
+
+puts "========================================="
+puts "🚀 AUTO-INSTALLING EVERYTHING"
+puts "========================================="
+
+# Create the installation script locally first
+exec cat << 'SCRIPT' > /tmp/auto_install.sh
+#!/bin/bash
+echo "========================================="
+echo "Installing CTF Platform and Juice Shop"
+echo "========================================="
+
+# 1. Start Apache
+echo "[1/6] Starting Apache..."
+systemctl start apache2
+systemctl enable apache2
+
+# 2. Create CTF landing page
+echo "[2/6] Creating CTF landing page..."
+mkdir -p /var/www/html
+cat > /var/www/html/index.html << 'HTML'
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Wonka Tech CTF Platform</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            padding: 50px;
+        }
+        h1 { font-size: 3em; }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.1);
+            padding: 30px;
+            border-radius: 10px;
+        }
+        .service {
+            background: rgba(255,255,255,0.2);
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        a {
+            color: #ffd700;
+            font-size: 1.5em;
+            text-decoration: none;
+        }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Wonka Tech CTF Platform</h1>
+        <div class="service">
+            <h2>Juice Shop Instances</h2>
+            <p><a href="https://juice3.wonkatech.org">Juice Shop (Cloudflare Protected)</a></p>
+            <p style="color: #ff6b6b;">⚠️ Some XSS challenges blocked by WAF</p>
+        </div>
+        <div class="service">
+            <h2>🔓 Unfiltered Practice Instance</h2>
+            <p><a href="http://155.138.197.128:4000">Juice Shop Standalone</a></p>
+            <p style="color: #51cf66;">✅ All XSS challenges work here!</p>
+        </div>
+    </div>
+</body>
+</html>
+HTML
+chown www-data:www-data /var/www/html/index.html
+
+# 3. Configure firewall
+echo "[3/6] Configuring firewall..."
+ufw allow 80/tcp
+ufw allow 443/tcp
+ufw allow 4000/tcp
+ufw --force enable
+
+# 4. Install Node.js if needed
+echo "[4/6] Installing Node.js..."
+which node || {
+    curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+    apt-get install -y nodejs
+}
+
+# 5. Install Juice Shop on port 4000
+echo "[5/6] Installing Juice Shop on port 4000..."
+if [ ! -d /opt/juice-shop-4000 ]; then
+    cd /opt
+    git clone https://github.com/juice-shop/juice-shop.git juice-shop-4000
+    cd juice-shop-4000
+    
+    # Create config with XSS disabled
+    mkdir -p config
+    cat > config/default.yml << 'CONFIG'
+server:
+  port: 4000
+application:
+  domain: "155.138.197.128:4000"
+  name: "OWASP Juice Shop - Unfiltered"
+  xssProtection: false
+  showChallengeSolvedNotifications: true
+challenges:
+  xssProtection: false
+  safetyOverride: true
+CONFIG
+    
+    echo "Installing npm packages (this takes a few minutes)..."
+    npm install --production
+    
+    # Create systemd service
+    cat > /etc/systemd/system/juice-4000.service << 'SERVICE'
+[Unit]
+Description=Juice Shop Port 4000
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/juice-shop-4000
+ExecStart=/usr/bin/node app.js
+Restart=always
+Environment="NODE_ENV=unsafe"
+
+[Install]
+WantedBy=multi-user.target
+SERVICE
+    
+    systemctl daemon-reload
+    systemctl enable juice-4000
+fi
+
+# 6. Start Juice Shop
+echo "[6/6] Starting Juice Shop..."
+systemctl restart juice-4000
+
+echo ""
+echo "========================================="
+echo "✅ INSTALLATION COMPLETE!"
+echo "========================================="
+echo ""
+echo "Services available at:"
+echo "  http://155.138.197.128 - CTF Platform"
+echo "  http://155.138.197.128:4000 - Juice Shop (XSS works!)"
+echo ""
+
+# Test services
+sleep 5
+curl -s http://localhost:80 -o /dev/null -w "CTF Platform: HTTP %{http_code}\n"
+curl -s http://localhost:4000 -o /dev/null -w "Juice Shop: HTTP %{http_code}\n"
+SCRIPT
+
+puts "\n📤 Copying installation script to server..."
+spawn scp /tmp/auto_install.sh root@155.138.197.128:/tmp/
+expect {
+    "yes/no" {
+        send "yes\r"
+        exp_continue
+    }
+    "password:" {
+        send "$pass\r"
+        expect eof
+    }
+}
+
+puts "\n🔧 Executing installation script..."
+spawn ssh root@155.138.197.128 "bash /tmp/auto_install.sh"
+expect {
+    "password:" {
+        send "$pass\r"
+        expect {
+            "INSTALLATION COMPLETE" {
+                puts "\n✅ SUCCESS! All services installed!"
+            }
+            eof
+        }
+    }
+}
+
+puts "\n========================================="
+puts "✅ DEPLOYMENT COMPLETE!"
+puts "========================================="
+puts ""
+puts "Access your services:"
+puts "  🌐 http://155.138.197.128 - CTF Platform"
+puts "  🌐 http://155.138.197.128:4000 - Juice Shop (XSS works!)"
+puts ""
+puts "Test DOM XSS:"
+puts "  1. Open http://155.138.197.128:4000"
+puts "  2. Press F12 for console"
+puts "  3. Type: location.href = '#/search?q=<iframe src=\"javascript:alert(1)\">'"

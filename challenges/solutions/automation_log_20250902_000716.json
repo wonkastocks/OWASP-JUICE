@@ -1,0 +1,338 @@
+{
+  "timestamp": "2025-09-02T00:07:16.312310",
+  "url": "https://juice3.wonkatech.org",
+  "completed_challenges": [
+    "Score Board",
+    "DOM XSS",
+    "Bonus Payload",
+    "Confidential Document",
+    "Error Handling",
+    "Exposed Metrics",
+    "Login Admin",
+    "Login MC SafeSearch",
+    "Password Strength",
+    "Security Policy",
+    "View Basket",
+    "Admin Registration",
+    "Login Bender",
+    "Login Jim",
+    "Payback Time",
+    "XXE Data Access",
+    "Access Log",
+    "User Credentials",
+    "Reset Bender's Password",
+    "Blockchain Hype",
+    "Arbitrary File Write"
+  ],
+  "total_completed": 21,
+  "steps": [
+    {
+      "time": "00:07:07",
+      "category": "STATUS",
+      "action": "Initial check",
+      "result": "Success",
+      "details": "27/110 challenges solved (24%)"
+    },
+    {
+      "time": "00:07:07",
+      "category": "Level 1",
+      "action": "Finding Score Board",
+      "result": "Starting",
+      "details": "Looking for hidden scoreboard"
+    },
+    {
+      "time": "00:07:08",
+      "category": "Level 1",
+      "action": "Score Board",
+      "result": "Success",
+      "details": "URL: https://juice3.wonkatech.org/#/score-board"
+    },
+    {
+      "time": "00:07:08",
+      "category": "Level 1",
+      "action": "DOM XSS",
+      "result": "Starting",
+      "details": "Injecting XSS via search"
+    },
+    {
+      "time": "00:07:08",
+      "category": "Level 1",
+      "action": "DOM XSS",
+      "result": "Success",
+      "details": "Payload: %3Ciframe%20src%3D%22javascript%3Aalert%28%60xss%6..."
+    },
+    {
+      "time": "00:07:08",
+      "category": "Level 1",
+      "action": "Bonus Payload",
+      "result": "Starting",
+      "details": "SoundCloud iframe injection"
+    },
+    {
+      "time": "00:07:08",
+      "category": "Level 1",
+      "action": "Bonus Payload",
+      "result": "Success",
+      "details": "SoundCloud iframe injected"
+    },
+    {
+      "time": "00:07:08",
+      "category": "Level 1",
+      "action": "Confidential Document",
+      "result": "Starting",
+      "details": "Accessing FTP directory"
+    },
+    {
+      "time": "00:07:09",
+      "category": "Level 1",
+      "action": "Confidential Document",
+      "result": "Success",
+      "details": "/ftp/acquisitions.md accessed"
+    },
+    {
+      "time": "00:07:09",
+      "category": "Level 1",
+      "action": "Error Handling",
+      "result": "Starting",
+      "details": "Triggering application error"
+    },
+    {
+      "time": "00:07:09",
+      "category": "Level 1",
+      "action": "Error Handling",
+      "result": "Success",
+      "details": "Error triggered at /rest/qwertz"
+    },
+    {
+      "time": "00:07:09",
+      "category": "Level 1",
+      "action": "Exposed Metrics",
+      "result": "Starting",
+      "details": "Accessing Prometheus metrics"
+    },
+    {
+      "time": "00:07:10",
+      "category": "Level 1",
+      "action": "Exposed Metrics",
+      "result": "Success",
+      "details": "/metrics endpoint accessed"
+    },
+    {
+      "time": "00:07:10",
+      "category": "Level 2",
+      "action": "Login Admin",
+      "result": "Starting",
+      "details": "SQL injection attack"
+    },
+    {
+      "time": "00:07:11",
+      "category": "Level 2",
+      "action": "Login Admin",
+      "result": "Success",
+      "details": "SQL injection: admin@juice-sh.op'--"
+    },
+    {
+      "time": "00:07:11",
+      "category": "Level 2",
+      "action": "Login MC SafeSearch",
+      "result": "Starting",
+      "details": "Password: Mr. N00dles"
+    },
+    {
+      "time": "00:07:11",
+      "category": "Level 2",
+      "action": "Login MC SafeSearch",
+      "result": "Success",
+      "details": "Default password found"
+    },
+    {
+      "time": "00:07:11",
+      "category": "Level 2",
+      "action": "Password Strength",
+      "result": "Starting",
+      "details": "Testing weak passwords"
+    },
+    {
+      "time": "00:07:11",
+      "category": "Level 2",
+      "action": "Password Strength",
+      "result": "Success",
+      "details": "Weak password: admin123"
+    },
+    {
+      "time": "00:07:11",
+      "category": "Level 2",
+      "action": "Security Policy",
+      "result": "Starting",
+      "details": "Finding security.txt"
+    },
+    {
+      "time": "00:07:12",
+      "category": "Level 2",
+      "action": "Security Policy",
+      "result": "Success",
+      "details": "/.well-known/security.txt found"
+    },
+    {
+      "time": "00:07:12",
+      "category": "Level 2",
+      "action": "View Basket",
+      "result": "Starting",
+      "details": "IDOR vulnerability"
+    },
+    {
+      "time": "00:07:12",
+      "category": "Level 2",
+      "action": "View Basket",
+      "result": "Success",
+      "details": "Accessed basket ID: 1"
+    },
+    {
+      "time": "00:07:12",
+      "category": "Level 3",
+      "action": "Admin Registration",
+      "result": "Starting",
+      "details": "Mass assignment attack"
+    },
+    {
+      "time": "00:07:12",
+      "category": "Level 3",
+      "action": "Admin Registration",
+      "result": "Success",
+      "details": "Registered admin: admin9366@test.com"
+    },
+    {
+      "time": "00:07:12",
+      "category": "Level 3",
+      "action": "Login Bender",
+      "result": "Starting",
+      "details": "SQL injection for Bender"
+    },
+    {
+      "time": "00:07:13",
+      "category": "Level 3",
+      "action": "Login Bender",
+      "result": "Success",
+      "details": "SQL injection successful"
+    },
+    {
+      "time": "00:07:13",
+      "category": "Level 3",
+      "action": "Login Jim",
+      "result": "Starting",
+      "details": "SQL injection for Jim"
+    },
+    {
+      "time": "00:07:13",
+      "category": "Level 3",
+      "action": "Login Jim",
+      "result": "Success",
+      "details": "SQL injection successful"
+    },
+    {
+      "time": "00:07:13",
+      "category": "Level 3",
+      "action": "Payback Time",
+      "result": "Starting",
+      "details": "Negative quantity manipulation"
+    },
+    {
+      "time": "00:07:13",
+      "category": "Level 3",
+      "action": "Payback Time",
+      "result": "Success",
+      "details": "Added negative quantity to basket"
+    },
+    {
+      "time": "00:07:13",
+      "category": "Level 3",
+      "action": "XXE Data Access",
+      "result": "Starting",
+      "details": "XML External Entity attack"
+    },
+    {
+      "time": "00:07:13",
+      "category": "Level 3",
+      "action": "XXE Data Access",
+      "result": "Success",
+      "details": "XXE payload uploaded"
+    },
+    {
+      "time": "00:07:13",
+      "category": "Level 4",
+      "action": "Access Log",
+      "result": "Starting",
+      "details": "Finding access logs"
+    },
+    {
+      "time": "00:07:14",
+      "category": "Level 4",
+      "action": "Access Log",
+      "result": "Success",
+      "details": "/support/logs found"
+    },
+    {
+      "time": "00:07:14",
+      "category": "Level 4",
+      "action": "User Credentials",
+      "result": "Starting",
+      "details": "SQL injection to extract credentials"
+    },
+    {
+      "time": "00:07:14",
+      "category": "Level 4",
+      "action": "User Credentials",
+      "result": "Success",
+      "details": "Extracted user credentials via SQL injection"
+    },
+    {
+      "time": "00:07:14",
+      "category": "Level 4",
+      "action": "Easter Egg",
+      "result": "Starting",
+      "details": "Finding hidden easter egg"
+    },
+    {
+      "time": "00:07:14",
+      "category": "Level 5",
+      "action": "Reset Bender's Password",
+      "result": "Starting",
+      "details": "Security question bypass"
+    },
+    {
+      "time": "00:07:15",
+      "category": "Level 5",
+      "action": "Reset Bender's Password",
+      "result": "Success",
+      "details": "Answer: Stop'n'Drop"
+    },
+    {
+      "time": "00:07:15",
+      "category": "Level 5",
+      "action": "Blockchain Hype",
+      "result": "Starting",
+      "details": "Finding blockchain whitepaper"
+    },
+    {
+      "time": "00:07:15",
+      "category": "Level 5",
+      "action": "Blockchain Hype",
+      "result": "Success",
+      "details": "Blockchain whitepaper found"
+    },
+    {
+      "time": "00:07:15",
+      "category": "Level 6",
+      "action": "Arbitrary File Write",
+      "result": "Starting",
+      "details": "Zip Slip vulnerability"
+    },
+    {
+      "time": "00:07:15",
+      "category": "Level 6",
+      "action": "Arbitrary File Write",
+      "result": "Success",
+      "details": "Zip Slip attack executed"
+    }
+  ]
+}

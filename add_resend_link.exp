@@ -1,0 +1,54 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "cd /var/www/ctf-platform/\r"
+expect "# "
+
+# Create PHP script to add visible resend link
+send "cat > add_resend_link.php << 'PHPEND'\r"
+send "<?php\r"
+send "// Read login.php\r"
+send "\\\$content = file_get_contents('login.php');\r"
+send "\r"
+send "// Add resend link in the links section\r"
+send "\\\$search = '<p><a href=\"/\">Back to Home</a></p>';\r"
+send "\\\$replace = '<p><a href=\"resend_verification.php\">Resend Verification Email</a></p>\r"
+send "            <p><a href=\"/\">Back to Home</a></p>';\r"
+send "\r"
+send "// Replace in file\r"
+send "\\\$content = str_replace(\\\$search, \\\$replace, \\\$content);\r"
+send "\r"
+send "// Save\r"
+send "file_put_contents('login.php', \\\$content);\r"
+send "echo \"Added resend link to login.php\\n\";\r"
+send "?>\r"
+send "PHPEND\r"
+expect "# "
+
+# Run the PHP script
+send "php add_resend_link.php\r"
+expect "# "
+
+# Clean up
+send "rm add_resend_link.php\r"
+expect "# "
+
+# Restart Apache
+send "systemctl restart apache2\r"
+expect "# "
+
+send "echo 'Resend verification link added to login page!'\r"
+expect "# "
+
+send "exit\r"
+expect eof

@@ -1,0 +1,43 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" { send "$password\r" }
+}
+expect "# "
+
+# Check which config is actually being used
+send "ls -la /etc/apache2/sites-available/\r"
+expect "# "
+
+send "cat /etc/apache2/sites-available/default.conf | head -20\r"
+expect "# "
+
+# Update the correct config file
+send "sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/ctf-platform|g' /etc/apache2/sites-available/default.conf\r"
+expect "# "
+
+# Also update Directory directive
+send "sed -i 's|<Directory /var/www/html>|<Directory /var/www/ctf-platform>|g' /etc/apache2/sites-available/default.conf\r"
+expect "# "
+
+send "systemctl reload apache2\r"
+expect "# "
+
+# Verify
+send "grep -A 2 DocumentRoot /etc/apache2/sites-available/default.conf\r"
+expect "# "
+
+# Test that the admin directory is accessible
+send "curl -I http://localhost/admin/admin_login.php\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\n✅ Apache configuration fixed!"
+puts "\n📌 Admin Panel Access:"
+puts "   URL: http://155.138.197.128/admin/admin_login.php"

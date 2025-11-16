@@ -1,0 +1,33 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect "# "
+
+# Check what's actually in login.php now
+send "head -20 /var/www/html/login.php\r"
+expect "# "
+
+send "echo '---'\r"
+expect "# "
+
+# Check if logintest.php has the redirect code
+send "grep -A5 'already logged in' /var/www/html/logintest.php | head -10\r"
+expect "# "
+
+send "exit\r"
+expect eof

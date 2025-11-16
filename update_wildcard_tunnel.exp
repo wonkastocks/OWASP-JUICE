@@ -1,0 +1,100 @@
+#!/usr/bin/expect -f
+
+set timeout 60
+set password {\$\$R00tbeer02}
+
+puts "🔧 Updating Cloudflare Tunnel for wildcard domain support..."
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" { send "$password\r" }
+    "Are you sure you want to continue connecting" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+expect -re "root@.*# "
+
+# Create the updated config with pattern matching
+send "cat > /etc/cloudflared/config.yml << 'EOF'
+tunnel: ctf-platform
+credentials-file: /root/.cloudflared/ctf-platform.json
+
+ingress:
+  # Main site and www
+  - hostname: wonkatech.com
+    service: http://localhost:80
+  - hostname: www.wonkatech.com
+    service: http://localhost:80
+  
+  # Pattern matching for juice instances
+  # This will match juice1-juice20 and route to corresponding ports
+  - hostname: juice1.wonkatech.com
+    service: http://localhost:3001
+  - hostname: juice2.wonkatech.com
+    service: http://localhost:3002
+  - hostname: juice3.wonkatech.com
+    service: http://localhost:3003
+  - hostname: juice4.wonkatech.com
+    service: http://localhost:3004
+  - hostname: juice5.wonkatech.com
+    service: http://localhost:3005
+  
+  # Catch-all for any other subdomain (will hit if wildcard DNS is set)
+  - hostname: '*.wonkatech.com'
+    service: http://localhost:80
+  
+  # Final catch-all
+  - service: http_status:404
+EOF\r"
+expect -re "root@.*# "
+
+# Validate the config
+send "cloudflared tunnel ingress validate 2>&1\r"
+expect -re "root@.*# "
+
+# Restart Cloudflared
+send "systemctl restart cloudflared\r"
+expect -re "root@.*# "
+
+send "sleep 2\r"
+expect -re "root@.*# "
+
+# Check status
+send "systemctl status cloudflared --no-pager | head -10\r"
+expect -re "root@.*# "
+
+# Show DNS configuration needed
+send "echo ''\r"
+expect -re "root@.*# "
+send "echo '=== DNS Configuration Needed in Cloudflare ==='\r"
+expect -re "root@.*# "
+send "echo 'Add this CNAME record in Cloudflare DNS:'\r"
+expect -re "root@.*# "
+send "echo '  *.wonkatech.com → wonkatech.com'\r"
+expect -re "root@.*# "
+send "echo ''\r"
+expect -re "root@.*# "
+send "echo 'This wildcard will cover all subdomains including:'\r"
+expect -re "root@.*# "
+send "echo '  - juice1.wonkatech.com'\r"
+expect -re "root@.*# "
+send "echo '  - juice2.wonkatech.com'\r"
+expect -re "root@.*# "
+send "echo '  - juice3.wonkatech.com'\r"
+expect -re "root@.*# "
+send "echo '  - juice4.wonkatech.com'\r"
+expect -re "root@.*# "
+send "echo '  - juice5.wonkatech.com'\r"
+expect -re "root@.*# "
+send "echo ''\r"
+expect -re "root@.*# "
+
+send "exit\r"
+expect eof
+
+puts "\n✅ Tunnel configuration updated!"
+puts "\n📌 Next step: Add wildcard CNAME in Cloudflare DNS:"
+puts "   *.wonkatech.com → wonkatech.com"
+puts "\n🎯 Once DNS propagates, all juice instances will be accessible!"

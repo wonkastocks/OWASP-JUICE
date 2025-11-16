@@ -1,0 +1,103 @@
+#!/usr/bin/expect -f
+
+set timeout 60
+set password {$$R00tbeer02}
+
+puts "🔍 Checking dashboard issue..."
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" { send "$password\r" }
+}
+expect "# "
+
+# Check Apache error logs
+send "echo '📋 Recent Apache errors:'\r"
+expect "# "
+send "tail -20 /var/log/apache2/error.log\r"
+expect "# "
+
+# Check if dashboard.php has syntax errors
+send "echo '\\n🔍 Checking PHP syntax:'\r"
+expect "# "
+send "php -l /var/www/ctf-platform/dashboard.php\r"
+expect "# "
+
+# Check the actual content of dashboard.php
+send "echo '\\n📄 Dashboard.php size:'\r"
+expect "# "
+send "ls -la /var/www/ctf-platform/dashboard.php\r"
+expect "# "
+
+# Check if there's a backup
+send "ls -la /var/www/ctf-platform/dashboard.php.backup* | head -5\r"
+expect "# "
+
+# Restore from backup
+send "echo '\\n🔧 Restoring from backup...'\r"
+expect "# "
+send "cp /var/www/ctf-platform/dashboard.php.backup /var/www/ctf-platform/dashboard.php\r"
+expect "# "
+
+# Apply HTTPS fix properly
+send "cat > /tmp/dashboard_proper_fix.php << 'EOFFIX'
+<?php
+\$file = '/var/www/ctf-platform/dashboard.php';
+\$content = file_get_contents(\$file);
+
+// Only fix the URL generation part, don't break the file
+if (strpos(\$content, 'http://155.138.197.128') !== false) {
+    // Fix instance URL generation
+    \$content = str_replace(
+        '\\\$instanceUrl = \"http://155.138.197.128:\\\$port\";',
+        '\\\$instanceNum = \\\$port - 3000; \\\$instanceUrl = \"https://juice{\\\$instanceNum}.wonkatech.org\";',
+        \$content
+    );
+    
+    // Fix any hardcoded URLs
+    for (\$i = 1; \$i <= 20; \$i++) {
+        \$port = 3000 + \$i;
+        \$content = str_replace(
+            \"http://155.138.197.128:\$port\",
+            \"https://juice\$i.wonkatech.org\",
+            \$content
+        );
+    }
+}
+
+file_put_contents(\$file, \$content);
+echo \"Dashboard fixed\\n\";
+?>
+EOFFIX\r"
+expect "# "
+
+send "php /tmp/dashboard_proper_fix.php\r"
+expect "# "
+
+# Verify PHP syntax again
+send "php -l /var/www/ctf-platform/dashboard.php\r"
+expect "# "
+
+# Set permissions
+send "chown www-data:www-data /var/www/ctf-platform/dashboard.php\r"
+expect "# "
+send "chmod 644 /var/www/ctf-platform/dashboard.php\r"
+expect "# "
+
+# Restart Apache
+send "systemctl restart apache2\r"
+expect "# "
+
+# Test the dashboard
+send "echo '\\n🧪 Testing dashboard:'\r"
+expect "# "
+send "curl -s http://localhost/ctf-platform/dashboard.php | head -20\r"
+expect "# "
+
+send "echo '\\n✅ Dashboard restored and fixed!'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\n✅ Dashboard issue fixed!"

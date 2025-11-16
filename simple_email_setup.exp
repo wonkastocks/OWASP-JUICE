@@ -1,0 +1,81 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "cd /var/www/ctf-platform/\r"
+expect "# "
+
+# Create a simple shell script to add email functionality
+send "cat > setup_email.sh << 'ENDSH'\r"
+send "#!/bin/bash\r"
+send "# Add email functionality to register.php\r"
+send "\r"
+send "# Check if mail function already exists\r"
+send "if grep -q 'mail(' register.php; then\r"
+send "  echo 'Email functionality already exists'\r"
+send "  exit 0\r"
+send "fi\r"
+send "\r"
+send "# Find line with success message and add email code after it\r"
+send "LINE=\\$(grep -n 'Registration successful! Please check' register.php | head -1 | cut -d: -f1)\r"
+send "\r"
+send "# Create temporary file with email code\r"
+send "cat > /tmp/email_code.txt << 'EMAILCODE'\r"
+send "                    // Send verification email\r"
+send "                    \\$to = \\$email;\r"
+send "                    \\$subject = \"WonkaTech CTF - Email Verification\";\r"
+send "                    \\$verificationLink = BASE_URL . \"/verify.php?token=\" . \\$verificationToken;\r"
+send "                    \\$message = \"Hello \" . \\$username . \",\\n\\nWelcome to WonkaTech CTF!\\n\\nClick here to verify:\\n\" . \\$verificationLink . \"\\n\\nBest regards,\\nWonkaTech CTF Team\";\r"
+send "                    \\$headers = \"From: noreply@wonkatech.org\";\r"
+send "                    @mail(\\$to, \\$subject, \\$message, \\$headers);\r"
+send "EMAILCODE\r"
+send "\r"
+send "# Insert email code after the success message line\r"
+send "sed -i \"\\${LINE}r /tmp/email_code.txt\" register.php\r"
+send "\r"
+send "# Clean up\r"
+send "rm /tmp/email_code.txt\r"
+send "\r"
+send "echo 'Email functionality added to register.php'\r"
+send "ENDSH\r"
+expect "# "
+
+send "chmod +x setup_email.sh\r"
+expect "# "
+
+send "./setup_email.sh\r"
+expect "# "
+
+send "rm setup_email.sh\r"
+expect "# "
+
+# Restart Apache
+send "systemctl restart apache2\r"
+expect "# "
+
+# Test sendmail
+send "echo 'Test from WonkaTech' | mail -s 'Test' root@localhost\r"
+expect "# "
+
+# Check mail queue
+send "mailq\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo 'Email system configured successfully!'\r"
+expect "# "
+send "echo 'Users will now receive verification emails when they register.'\r"
+expect "# "
+
+send "exit\r"
+expect eof

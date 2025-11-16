@@ -1,0 +1,81 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+# Copy the test script
+spawn scp /tmp/test_mail_final.php root@155.138.197.128:/var/www/ctf-platform/
+expect {
+    "password:" {
+        send "$password\r"
+        expect "100%"
+    }
+}
+
+# SSH and run the test
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "cd /var/www/ctf-platform/\r"
+expect "# "
+
+send "echo 'Running mail system test...'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+
+# Run the test
+send "php test_mail_final.php\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+
+# Check mail queue
+send "echo 'Checking mail queue:'\r"
+expect "# "
+send "mailq | head -10\r"
+expect "# "
+
+# Check postfix logs
+send "echo ''\r"
+expect "# "
+send "echo 'Recent mail activity:'\r"
+expect "# "
+send "tail -20 /var/log/mail.log 2>/dev/null || echo 'No mail log available'\r"
+expect "# "
+
+# Clean up
+send "rm test_mail_final.php\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo 'Email system configured for local delivery!'\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo 'The platform can now:'\r"
+expect "# "
+send "echo '- Send registration verification emails'\r"
+expect "# "
+send "echo '- Resend verification emails for unverified users'\r"
+expect "# "
+send "echo '- Process all email locally through postfix'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'Note: Emails to external addresses like wonkastocks@gmail.com'\r"
+expect "# "
+send "echo 'will be queued locally since port 25 is blocked.'\r"
+expect "# "
+
+send "exit\r"
+expect eof

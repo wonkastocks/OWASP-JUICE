@@ -1,0 +1,90 @@
+[Mon Sep  1 08:34:56 EDT 2025] Starting password extraction and cracking...
+[Mon Sep  1 08:34:56 EDT 2025] Extracting credentials from Juice Shop...
+Extracted 22 users
+[Mon Sep  1 08:35:14 EDT 2025] Creating wordlists...
+[Mon Sep  1 08:35:14 EDT 2025] Adding password mutations...
+[Mon Sep  1 08:35:14 EDT 2025] Running John the Ripper...
+Using default input encoding: UTF-8
+Loaded 22 password hashes with no different salts (Raw-MD5 [MD5 128/128 ASIMD 4x2])
+Remaining 18 password hashes with no different salts
+/-\|/-\|/-\|/Crash recovery file is locked: /Users/walterbarr_1/.john/john.rec
+Using default input encoding: UTF-8
+Loaded 22 password hashes with no different salts (Raw-MD5 [MD5 128/128 ASIMD 4x2])
+Remaining 18 password hashes with no different salts
+/-\|/-\|/-\|/Crash recovery file is locked: /Users/walterbarr_1/.john/john.rec
+Using default input encoding: UTF-8
+Loaded 22 password hashes with no different salts (Raw-MD5 [MD5 128/128 ASIMD 4x2])
+Remaining 18 password hashes with no different salts
+/-\|/-\|/-\|/Crash recovery file is locked: /Users/walterbarr_1/.john/john.rec
+Using default input encoding: UTF-8
+Loaded 22 password hashes with no different salts (Raw-MD5 [MD5 128/128 ASIMD 4x2])
+Remaining 18 password hashes with no different salts
+/-\|/-\|/-\|/Crash recovery file is locked: /Users/walterbarr_1/.john/john.rec
+[Mon Sep  1 08:35:15 EDT 2025] Running hashcat...
+hashcat (v6.2.6) starting
+
+You have enabled --force to bypass dangerous warnings and errors!
+This can hide serious problems and should only be done when debugging.
+Do not report hashcat issues encountered when using --force.
+
+* Device #2: Apple's OpenCL drivers (GPU) are known to be unreliable.
+             You have been warned.
+
+METAL API (Metal 368.52)
+========================
+* Device #1: Apple M4 Max, 49088/98304 MB, 40MCU
+
+OpenCL API (OpenCL 1.2 (Jul 11 2025 19:18:49)) - Platform #1 [Apple]
+====================================================================
+* Device #2: Apple M4 Max, skipped
+
+Minimum password length supported by kernel: 0
+Maximum password length supported by kernel: 256
+
+Counting lines in hashes.txt. Please be patient...Counted lines in hashes.txtHashfile 'hashes.txt' on line 1 (admin@...0192023a7bbd73250516f069df18b500): Token length exception
+Hashfile 'hashes.txt' on line 2 (jim@ju...e541ca7ecf72b8d1286474fc613e5e45): Token length exception
+Hashfile 'hashes.txt' on line 3 (bender...0c36e517e3fa95aabf1bbffc6744a4ef): Token length exception
+Hashfile 'hashes.txt' on line 4 (bjoern...6edd9d726cbdc873c539e41ae8757b8c): Token length exception
+Hashfile 'hashes.txt' on line 5 (ciso@j...861917d5fa5f1172f931dc700d81a8fb): Token length exception
+Hashfile 'hashes.txt' on line 6 (suppor...3869433d74e3d0c86fd25562f836bc82): Token length exception
+Hashfile 'hashes.txt' on line 7 (morty@...f2f933d0bb0ba057bc8e33b8ebd6d9e8): Token length exception
+Hashfile 'hashes.txt' on line 8 (mc.saf...b03f4b0ba8b458fa0acdc02cdb953bc8): Token length exception
+Hashfile 'hashes.txt' on line 9 (J12934...3c2abc04e4a6ea8f1327d0aae3714b7d): Token length exception
+Hashfile 'hashes.txt' on line 10 (wurstb...9ad5b0492bbe528583e128d2a8941de4): Token length exception
+Hashfile 'hashes.txt' on line 11 (amy@ju...030f05e45e30710c3ad3c32f00de0473): Token length exception
+Hashfile 'hashes.txt' on line 12 (bjoern...7f311911af16fa8f418dd1a3051d6810): Token length exception
+Hashfile 'hashes.txt' on line 13 (bjoern...9283f1b2e9669749081963be0462e466): Token length exception
+Hashfile 'hashes.txt' on line 14 (chris....10a783b9ed19ea1c67c3a27699f0095b): Token length exception
+Hashfile 'hashes.txt' on line 15 (accoun...963e10f92a70b4b463220cb4c5d636dc): Token length exception
+Hashfile 'hashes.txt' on line 16 (uvogin...05f92148b4b60f7dacd04cceebb8f1af): Token length exception
+Hashfile 'hashes.txt' on line 17 (demo:fe01ce2a7fbac8fafaed7c982a04e229): Token length exception
+Hashfile 'hashes.txt' on line 18 (john@j...00479e957b6b42c459ee5746478e4d45): Token length exception
+Hashfile 'hashes.txt' on line 19 (emma@j...402f1c4a75e316afec5a6ea63147f739): Token length exception
+Hashfile 'hashes.txt' on line 20 (stan@j...e9048a3f43dd5e094ef733f3bd88ea64): Token length exception
+Hashfile 'hashes.txt' on line 21 (ethere...2c17c6393771ee3048ae34d6b380c5ec): Token length exception
+Hashfile 'hashes.txt' on line 22 (testin...b616a64605a07941fbd31868aea3b54b): Token length exception
+Parsing Hashes: 0/22 (0.00%)...
+* Token length exception: 22/22 hashes
+  This error happens if the wrong hash type is specified, if the hashes are
+  malformed, or if input is otherwise not as expected (for example, if the
+  --username option is used but no username is present)
+
+No hashes loaded.
+
+Started: Mon Sep  1 08:35:15 2025
+Stopped: Mon Sep  1 08:35:18 2025
+[Mon Sep  1 08:35:18 EDT 2025] Collecting results...
+
+============================================
+[Mon Sep  1 08:35:18 EDT 2025] Cracking complete!
+Results saved to: cracked_passwords_20250901_083456.txt
+Log saved to: crack_log_20250901_083456.log
+Cracked: 4 /       22 passwords
+
+Cracked Passwords:
+admin@juice-sh.op:admin123
+jim@juice-sh.op:ncc-1701
+demo:demo
+ethereum@juice-sh.op:private
+
+4 password hashes cracked, 18 left

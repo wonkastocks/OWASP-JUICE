@@ -1,0 +1,61 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+# Copy the fixed config file
+spawn scp /tmp/config_fixed.php root@155.138.197.128:/var/www/ctf-platform/config.php
+expect {
+    "password:" {
+        send "$password\r"
+        expect "100%"
+    }
+}
+
+# SSH to verify
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "echo 'Verifying config.php syntax...'\r"
+expect "# "
+
+# Test PHP syntax
+send "php -l /var/www/ctf-platform/config.php\r"
+expect "# "
+
+# Set permissions
+send "chmod 644 /var/www/ctf-platform/config.php\r"
+expect "# "
+send "chown www-data:www-data /var/www/ctf-platform/config.php\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo 'CONFIG FILE SYNTAX FIXED!'\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo '✅ Fixed PHP syntax error in config.php'\r"
+expect "# "
+send "echo '✅ Removed escaped quotes that were causing parse error'\r"
+expect "# "
+send "echo '✅ Database variables properly defined'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'The resend verification page should work now!'\r"
+expect "# "
+send "echo 'Test it at: https://wonkatech.org/resend_verification.php'\r"
+expect "# "
+
+send "exit\r"
+expect eof

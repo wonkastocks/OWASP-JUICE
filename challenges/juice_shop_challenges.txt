@@ -1,0 +1,739 @@
+# OWASP Juice Shop CTF Challenges
+# Total Challenges: 110
+================================================================================
+
+
+## BROKEN ACCESS CONTROL CHALLENGES
+----------------------------------------
+
+### 1. Web3 Sandbox
+Difficulty: ⭐ 1
+Status: ❌ Not Solved
+Description: Find an accidentally deployed code sandbox for writing smart contracts on the fly.
+Hint: It is just as easy as finding the Score Board.
+
+### 2. Admin Section
+Difficulty: ⭐⭐ 2
+Status: ❌ Not Solved
+Description: Access the administration section of the store.
+Hint: It is just slightly harder to find than the score board link.
+
+### 3. Five-Star Feedback
+Difficulty: ⭐⭐ 2
+Status: ❌ Not Solved
+Description: Get rid of all 5-star customer feedback.
+Hint: Once you found admin section of the application, this challenge is almost trivial.
+
+### 4. View Basket
+Difficulty: ⭐⭐ 2
+Status: ❌ Not Solved
+Description: View another user's shopping basket.
+Hint: Have an eye on the HTTP traffic while shopping. Alternatively try to find a client-side association of users to their basket.
+
+### 5. Forged Feedback
+Difficulty: ⭐⭐⭐ 3
+Status: ❌ Not Solved
+Description: Post some feedback in another user's name.
+Hint: You can solve this by tampering with the user interface or by intercepting the communication with the RESTful backend.
+
+### 6. Forged Review
+Difficulty: ⭐⭐⭐ 3
+Status: ❌ Not Solved
+Description: Post a product review as another user or edit any user's existing review.
+Hint: Observe the flow of product review posting and editing and see if you can exploit it.
+
+### 7. Manipulate Basket
+Difficulty: ⭐⭐⭐ 3
+Status: ❌ Not Solved
+Description: Put an additional product into another user's shopping basket.
+Hint: Have an eye on the HTTP traffic while placing products in the shopping basket. Changing the quantity of products already in the basket doesn't count.
+
+### 8. Product Tampering
+Difficulty: ⭐⭐⭐ 3
+Status: ❌ Not Solved
+Description: Change the <code>href</code> of the link within the <a href="/#/search?q=OWASP SSL Advanced Forensic Tool (O-Saft)">OWASP SSL Advanced Forensic Tool (O-Saft)</a> product description into <i>https://owasp.slack.com</i>.
+Hint: Look for one of the following: a) broken admin functionality, b) holes in RESTful API or c) possibility for SQL Injection.
+
+### 9. CSRF
+Difficulty: ⭐⭐⭐ 3
+Status: ❌ Not Solved
+Description: Change the name of a user by performing Cross-Site Request Forgery from <a href="http://htmledit.squarefree.com">another origin</a>.
+Hint: Find a form which updates the username and then construct a malicious page in the online HTML editor. You probably need an older browser version for this.
+
+### 10. Easter Egg
+Difficulty: ⭐⭐⭐⭐ 4
+Status: ❌ Not Solved
+Description: Find the hidden <a href="https://en.wikipedia.org/wiki/Easter_egg_(media)" target="_blank">easter egg</a>.
+Hint: If you solved one of the three file access challenges, you already know where to find the easter egg.
+
+### 11. SSRF
+Difficulty: ⭐⭐⭐⭐⭐⭐ 6
+Status: ❌ Not Solved
+Description: Request a hidden resource on server through server.
+Hint: Reverse engineering something bad can make good things happen.
+
+## BROKEN ANTI AUTOMATION CHALLENGES
+----------------------------------------
+
+### 12. CAPTCHA Bypass
+Difficulty: ⭐⭐⭐ 3
+Status: ❌ Not Solved
+Description: Submit 10 or more customer feedbacks within 20 seconds.
+Hint: After finding a CAPTCHA bypass, write a script that automates feedback submission. Or open many browser tabs and be really quick.
+
+### 13. Extra Language
+Difficulty: ⭐⭐⭐⭐⭐ 5
+Status: ❌ Not Solved
+Description: Retrieve the language file that never made it into production.
+Hint: Brute force is not the only option for this challenge, but a perfectly viable one.
+
+### 14. Reset Morty's Password
+Difficulty: ⭐⭐⭐⭐⭐ 5
+Status: ❌ Not Solved
+Description: Reset Morty's password via the <a href="/#/forgot-password">Forgot Password</a> mechanism with <i>his obfuscated answer</i> to his security question.
+Hint: Find a way to bypass the rate limiting and brute force the obfuscated answer to Morty's security question.
+
+### 15. Multiple Likes
+Difficulty: ⭐⭐⭐⭐⭐⭐ 6
+Status: ❌ Not Solved
+Description: Like any review at least three times as the same user.
+Hint: Punctuality is the politeness of kings.
+
+## BROKEN AUTHENTICATION CHALLENGES
+----------------------------------------
+
+### 16. Password Strength
+Difficulty: ⭐⭐ 2
+Status: ❌ Not Solved
+Description: Log in with the administrator's user credentials without previously changing them or applying SQL Injection.
+Hint: This one should be equally easy to a) brute force, b) crack the password hash or c) simply guess.
+
+### 17. Bjoern's Favorite Pet
+Difficulty: ⭐⭐⭐ 3
+Status: ❌ Not Solved
+Description: Reset the password of Bjoern's OWASP account via the <a href="/#/forgot-password">Forgot Password</a> mechanism with <i>the original answer</i> to his security question.
+Hint: He might have trumpeted it on at least one occasion where a camera was running. Maybe elsewhere as well.
+
+### 18. GDPR Data Erasure
+Difficulty: ⭐⭐⭐ 3
+Status: ❌ Not Solved
+Description: Log in with Chris' erased user account.
+Hint: Turns out that something is technically and legally wrong with the implementation of the "right to be forgotten" for users.
+
+### 19. Reset Jim's Password
+Difficulty: ⭐⭐⭐ 3
+Status: ❌ Not Solved
+Description: Reset Jim's password via the <a href="/#/forgot-password">Forgot Password</a> mechanism with <i>the original answer</i> to his security question.
+Hint: It's hard for celebrities to pick a security question from a hard-coded list where the answer is not publicly exposed.
+
+### 20. Login Bjoern
+Difficulty: ⭐⭐⭐⭐ 4
+Status: ❌ Not Solved
+Description: Log in with Bjoern's Gmail account <i>without</i> previously changing his password, applying SQL Injection, or hacking his Google account.
+Hint: The security flaw behind this challenge is 100% OWASP Juice Shop's fault and 0% Google's.
+
+### 21. Reset Bender's Password
+Difficulty: ⭐⭐⭐⭐ 4
+Status: ❌ Not Solved
+Description: Reset Bender's password via the <a href="/#/forgot-password">Forgot Password</a> mechanism with <i>the original answer</i> to his security question.
+Hint: Not as trivial as Jim's but still not too difficult with some "Futurama" background knowledge.
+
+### 22. Change Bender's Password
+Difficulty: ⭐⭐⭐⭐⭐ 5
+Status: ❌ Not Solved
+Description: Change Bender's password into <i>slurmCl4ssic</i> without using SQL Injection or Forgot Password.
+Hint: In previous releases this challenge was wrongly accused of being based on CSRF.
+
+### 23. Reset Bjoern's Password
+Difficulty: ⭐⭐⭐⭐⭐ 5
+Status: ❌ Not Solved
+Description: Reset the password of Bjoern's internal account via the <a href="/#/forgot-password">Forgot Password</a> mechanism with <i>the original answer</i> to his security question.
+Hint: Nothing a little bit of Facebook stalking couldn't reveal. Might involve a historical twist.
+
+### 24. Two Factor Authentication
+Difficulty: ⭐⭐⭐⭐⭐ 5
+Status: ❌ Not Solved
+Description: Solve the 2FA challenge for user "wurstbrot". (Disabling, bypassing or overwriting his 2FA settings does not count as a solution)
+Hint: The 2FA implementation requires to store a secret for every user. You will need to find a way to access this secret in order to solve this challenge.
+
+## CRYPTOGRAPHIC ISSUES CHALLENGES
+----------------------------------------
+
+### 25. Weird Crypto
+Difficulty: ⭐⭐ 2
+Status: ❌ Not Solved
+Description: <a href="/#/contact">Inform the shop</a> about an algorithm or library it should definitely not use the way it does.
+Hint: Report one of four possible answers via the "Customer Feedback" form.
+
+### 26. Nested Easter Egg
+Difficulty: ⭐⭐⭐⭐ 4
+Status: ❌ Not Solved
+Description: Apply some advanced cryptanalysis to find <i>the real</i> easter egg.
+Hint: You might have to peel through several layers of tough-as-nails encryption for this challenge.
+
+### 27. Forged Coupon
+Difficulty: ⭐⭐⭐⭐⭐⭐ 6
+Status: ❌ Not Solved
+Description: Forge a coupon code that gives you a discount of at least 80%.
+Hint: Try either a) a knowledgeable brute force attack or b) reverse engineering or c) some research in the cloud.
+
+### 28. Imaginary Challenge
+Difficulty: ⭐⭐⭐⭐⭐⭐ 6
+Status: ❌ Not Solved
+Description: Solve challenge #999. Unfortunately, this challenge does not exist.
+Hint: You need to trick the hacking progress persistence feature into thinking you solved challenge #999.
+
+### 29. Premium Paywall
+Difficulty: ⭐⭐⭐⭐⭐⭐ 6
+Status: ❌ Not Solved
+Description: <i class="far fa-gem"></i><i class="far fa-gem"></i><i class="far fa-gem"></i><i class="far fa-gem"></i><i class="far fa-gem"></i><!--IvLuRfBJYlmStf9XfL6ckJFngyd9LfV1JaaN/KRTPQPidTuJ7FR+D/nkWJUF+0xUF07CeCeqYfxq+OJVVa0gNbqgYkUNvn//UbE7e95C+6e+7GtdpqJ8mqm4WcPvUGIUxmGLTTAC2+G9UuFCD1DUjg==--> <a href="https://blockchain.info/address/1AbKfgvw9psQ41NbLi8kufDQTezwG8DRZm" target="_blank"><i class="fab fa-btc fa-sm"></i> Unlock Premium Challenge</a> to access exclusive content.
+Hint: You do not have to pay anything to unlock this challenge! Nonetheless, donations are very much appreciated.
+
+## IMPROPER INPUT VALIDATION CHALLENGES
+----------------------------------------
+
+### 30. Repetitive Registration
+Difficulty: ⭐ 1
+Status: ❌ Not Solved
+Description: Follow the DRY principle while registering a user.
+Hint: You can solve this by cleverly interacting with the UI or bypassing it altogether.
+
+### 31. Zero Stars
+Difficulty: ⭐ 1
+Status: ❌ Not Solved
+Description: Give a devastating zero-star feedback to the store.
+Hint: Before you invest time bypassing the API, you might want to play around with the UI a bit.
+
+### 32. Missing Encoding
+Difficulty: ⭐ 1
+Status: ❌ Not Solved
+Description: Retrieve the photo of Bjoern's cat in "melee combat-mode".
+Hint: Check the Photo Wall for an image that could not be loaded correctly.
+
+### 33. Empty User Registration
+Difficulty: ⭐⭐ 2
+Status: ❌ Not Solved
+Description: Register a user with an empty email and password.
+Hint: Consider intercepting and playing with the request payload.
+
+### 34. Admin Registration
+Difficulty: ⭐⭐⭐ 3
+Status: ❌ Not Solved
+Description: Register as a user with administrator privileges.
+Hint: You have to assign the unassignable.
+
+### 35. Mint the Honey Pot
+Difficulty: ⭐⭐⭐ 3
+Status: ❌ Not Solved
+Description: Mint the Honey Pot NFT by gathering BEEs from the bee haven.
+Hint: Discover NFT wonders among the captivating visual memories.
+
+### 36. Payback Time
+Difficulty: ⭐⭐⭐ 3
+Status: ❌ Not Solved
+Description: Place an order that makes you rich.
+Hint: You literally need to make the shop owe you any amount of money.
+
+### 37. Upload Size
+Difficulty: ⭐⭐⭐ 3
+Status: ❌ Not Solved
+Description: Upload a file larger than 100 kB.
+Hint: You can attach a small file to the "Complaint" form. Investigate how this upload actually works.
+
+### 38. Upload Type
+Difficulty: ⭐⭐⭐ 3
+Status: ❌ Not Solved
+Description: Upload a file that has no .pdf or .zip extension.
+Hint: You can attach a PDF or ZIP file to the "Complaint" form. Investigate how this upload actually works.
+
+### 39. Deluxe Fraud
+Difficulty: ⭐⭐⭐ 3
+Status: ❌ Not Solved
+Description: Obtain a Deluxe Membership without paying for it.
+Hint: Look closely at what happens when you attempt to upgrade your account.
+
+### 40. Expired Coupon
+Difficulty: ⭐⭐⭐⭐ 4
+Status: ❌ Not Solved
+Description: Successfully redeem an expired campaign coupon code.
+Hint: Try to identify past special event or holiday campaigns of the shop first.
+
+### 41. Poison Null Byte
+Difficulty: ⭐⭐⭐⭐ 4
+Status: ❌ Not Solved
+Description: Bypass a security control with a <a href="https://hakipedia.com/index.php/Poison_Null_Byte">Poison Null Byte</a> to access a file not meant for your eyes.
+Hint: Take a look at the details in the photo to determine the location of where it was taken.
+
+## INJECTION CHALLENGES
+----------------------------------------
+
+### 42. Login Admin
+Difficulty: ⭐⭐ 2
+Status: ❌ Not Solved
+Description: Log in with the administrator's user account.
+Hint: Try different SQL Injection attack patterns depending whether you know the admin's email address or not.
+
+### 43. Database Schema
+Difficulty: ⭐⭐⭐ 3
+Status: ❌ Not Solved
+Description: Exfiltrate the entire DB schema definition via SQL Injection.
+Hint: Find out where this information could come from. Then craft a UNION SELECT attack string against an endpoint that offers an unnecessary way to filter data.
+
+### 44. Login Bender
+Difficulty: ⭐⭐⭐ 3
+Status: ❌ Not Solved
+Description: Log in with Bender's user account.
+Hint: If you know Bender's email address, try SQL Injection. Bender's password hash might not help you very much.
+
+### 45. Login Jim
+Difficulty: ⭐⭐⭐ 3
+Status: ❌ Not Solved
+Description: Log in with Jim's user account.
+Hint: Try cracking Jim's password hash if you harvested it already. Alternatively, if you know Jim's email address, try SQL Injection.
+
+### 46. Christmas Special
+Difficulty: ⭐⭐⭐⭐ 4
+Status: ❌ Not Solved
+Description: Order the Christmas special offer of 2014.
+Hint: Find out how the application handles unavailable products and try to find a loophole.
+
+### 47. Ephemeral Accountant
+Difficulty: ⭐⭐⭐⭐ 4
+Status: ❌ Not Solved
+Description: Log in with the (non-existing) accountant <i>acc0unt4nt@juice-sh.op</i> without ever registering that user.
+Hint: Try to create the needed user "out of thin air".
+
+### 48. NoSQL DoS
+Difficulty: ⭐⭐⭐⭐ 4
+Status: ❌ Not Solved
+Description: Let the server sleep for some time. (It has done more than enough hard work for you) <em>(This challenge is <strong>potentially harmful</strong> on Docker!)</em>
+Hint: This challenge is essentially a stripped-down Denial of Service (DoS) attack.
+
+### 49. NoSQL Manipulation
+Difficulty: ⭐⭐⭐⭐ 4
+Status: ❌ Not Solved
+Description: Update multiple product reviews at the same time.
+Hint: Take a close look on how the equivalent of UPDATE-statements in MongoDB work.
+
+### 50. User Credentials
+Difficulty: ⭐⭐⭐⭐ 4
+Status: ❌ Not Solved
+Description: Retrieve a list of all user credentials via SQL Injection.
+Hint: Gather information on where user data is stored and how it is addressed. Then craft a corresponding UNION SELECT attack.
+
+### 51. NoSQL Exfiltration
+Difficulty: ⭐⭐⭐⭐⭐ 5
+Status: ❌ Not Solved
+Description: All your orders are belong to us! Even the ones which don't. <em>(This challenge is <strong>potentially harmful</strong> on Docker!)</em>
+Hint: Take a close look on how the $where query operator works in MongoDB.
+
+### 52. SSTi
+Difficulty: ⭐⭐⭐⭐⭐⭐ 6
+Status: ❌ Not Solved
+Description: Infect the server with juicy malware by abusing arbitrary command execution. <em>(This challenge is <strong>potentially harmful</strong> on Docker!)</em>
+Hint: "SSTi" is a clear indicator that this has nothing to do with anything Angular. Also, make sure to use only our non-malicious malware.
+
+## INSECURE DESERIALIZATION CHALLENGES
+----------------------------------------
+
+### 53. Blocked RCE DoS
+Difficulty: ⭐⭐⭐⭐⭐ 5
+Status: ❌ Not Solved
+Description: Perform a Remote Code Execution that would keep a less hardened application busy <em>forever</em>. <em>(This challenge is <strong>potentially harmful</strong> on Docker!)</em>
+Hint: The feature you need to exploit for this challenge is not directly advertised anywhere.
+
+### 54. Memory Bomb
+Difficulty: ⭐⭐⭐⭐⭐ 5
+Status: ❌ Not Solved
+Description: Drop some explosive data into a vulnerable file-handling endpoint. <em>(This challenge is <strong>potentially harmful</strong> on Docker!)</em>
+Hint: This one is actually similar to the XXE DoS challenge in every way except the data format being (ab)used.
+
+### 55. Successful RCE DoS
+Difficulty: ⭐⭐⭐⭐⭐⭐ 6
+Status: ❌ Not Solved
+Description: Perform a Remote Code Execution that occupies the server for a while without using infinite loops. <em>(This challenge is <strong>potentially harmful</strong> on Docker!)</em>
+Hint: Your attack payload must not trigger the protection against too many iterations.
+
+## MISCELLANEOUS CHALLENGES
+----------------------------------------
+
+### 56. Privacy Policy
+Difficulty: ⭐ 1
+Status: ❌ Not Solved
+Description: Read our privacy policy.
+Hint: We won't even ask you to confirm that you did. Just read it. Please. Pretty please.
+
+### 57. Score Board
+Difficulty: ⭐ 1
+Status: ❌ Not Solved
+Description: Find the carefully hidden 'Score Board' page.
+Hint: Try to find a reference or clue behind the scenes. Or simply guess what URL the Score Board might have.
+
+### 58. Bully Chatbot
+Difficulty: ⭐ 1
+Status: ❌ Not Solved
+Description: Receive a coupon code from the support chatbot.
+Hint: Just keep asking.
+
+### 59. Mass Dispel
+Difficulty: ⭐ 1
+Status: ❌ Not Solved
+Description: Close multiple "Challenge solved"-notifications in one go.
+Hint: Either check the official documentation or inspect a notification UI element directly.
+
+### 60. Security Policy
+Difficulty: ⭐⭐ 2
+Status: ❌ Not Solved
+Description: Behave like any "white-hat" should before getting into the action.
+Hint: Undoubtedly you want to read our security policy before conducting any research on our application.
+
+### 61. Security Advisory
+Difficulty: ⭐⭐⭐ 3
+Status: ❌ Not Solved
+Description: The Juice Shop is susceptible to a known vulnerability in a library, for which an advisory has already been issued, marking the Juice Shop as <i>known affected</i>. A fix is still pending. <a href="/#/contact">Inform the shop</a> about a suitable checksum as proof that you did your due diligence.
+Hint: Security Advisories are often listed in the security.txt
+
+### 62. Wallet Depletion
+Difficulty: ⭐⭐⭐⭐⭐⭐ 6
+Status: ❌ Not Solved
+Description: Withdraw more ETH from the new wallet than you deposited.
+Hint: Try to exploit the contract of the wallet.
+
+## SECURITY MISCONFIGURATION CHALLENGES
+----------------------------------------
+
+### 63. Error Handling
+Difficulty: ⭐ 1
+Status: ❌ Not Solved
+Description: Provoke an error that is neither very gracefully nor consistently handled.
+Hint: Try to submit bad input to forms. Alternatively tamper with URL paths or parameters.
+
+### 64. Deprecated Interface
+Difficulty: ⭐⭐ 2
+Status: ❌ Not Solved
+Description: Use a deprecated B2B interface that was not properly shut down.
+Hint: The developers who disabled the interface think they could go invisible by just closing their eyes.
+
+### 65. Cross-Site Imaging
+Difficulty: ⭐⭐⭐⭐⭐ 5
+Status: ❌ Not Solved
+Description: Stick <a href="https://cataas.com/cat" target="_blank">cute cross-domain kittens</a> all over our delivery boxes.
+Hint: This challenge would formally have to be in several categories as the developers made multiple gaffes for this to be possible.
+
+### 66. Login Support Team
+Difficulty: ⭐⭐⭐⭐⭐⭐ 6
+Status: ❌ Not Solved
+Description: Log in with the support team's original user credentials without applying SQL Injection or any other bypass.
+Hint: The underlying flaw of this challenge is a lot more human error than technical weakness.
+
+## SECURITY THROUGH OBSCURITY CHALLENGES
+----------------------------------------
+
+### 67. Privacy Policy Inspection
+Difficulty: ⭐⭐⭐ 3
+Status: ❌ Not Solved
+Description: Prove that you actually read our privacy policy.
+Hint: Only by visiting a special URL you can confirm that you read it carefully.
+
+### 68. Steganography
+Difficulty: ⭐⭐⭐⭐ 4
+Status: ❌ Not Solved
+Description: <a href="/#/contact">Rat out</a> a notorious character hiding in plain sight in the shop. (Mention the exact name of the character)
+Hint: No matter how good your eyes are, you will need tool assistance for this challenge.
+
+### 69. Blockchain Hype
+Difficulty: ⭐⭐⭐⭐⭐ 5
+Status: ❌ Not Solved
+Description: Learn about the Token Sale before its official announcement.
+Hint: The developers truly believe in "Security through Obscurity" over actual access restrictions.
+
+## SENSITIVE DATA EXPOSURE CHALLENGES
+----------------------------------------
+
+### 70. Confidential Document
+Difficulty: ⭐ 1
+Status: ❌ Not Solved
+Description: Access a confidential document.
+Hint: Analyze and tamper with links in the application that deliver a file directly.
+
+### 71. Exposed Metrics
+Difficulty: ⭐ 1
+Status: ❌ Not Solved
+Description: Find the endpoint that serves usage data to be scraped by a <a href="https://github.com/prometheus/prometheus">popular monitoring system</a>.
+Hint: Try to guess what URL the endpoint might have.
+
+### 72. NFT Takeover
+Difficulty: ⭐⭐ 2
+Status: ❌ Not Solved
+Description: Take over the wallet containing our official Soul Bound Token (NFT).
+Hint: Find the seed phrase posted accidentally.
+
+### 73. Login MC SafeSearch
+Difficulty: ⭐⭐ 2
+Status: ❌ Not Solved
+Description: Log in with MC SafeSearch's original user credentials without applying SQL Injection or any other bypass.
+Hint: You should listen to MC's hit song "Protect Ya Passwordz".
+
+### 74. Meta Geo Stalking
+Difficulty: ⭐⭐ 2
+Status: ❌ Not Solved
+Description: Determine the answer to John's security question by looking at an upload of him to the Photo Wall and use it to reset his password via the <a href="/#/forgot-password">Forgot Password</a> mechanism.
+Hint: Take a look at the meta data of the corresponding photo.
+
+### 75. Visual Geo Stalking
+Difficulty: ⭐⭐ 2
+Status: ❌ Not Solved
+Description: Determine the answer to Emma's security question by looking at an upload of her to the Photo Wall and use it to reset her password via the <a href="/#/forgot-password">Forgot Password</a> mechanism.
+Hint: Take a look at the details in the photo to determine the location of where it was taken.
+
+### 76. Exposed credentials
+Difficulty: ⭐⭐ 2
+Status: ❌ Not Solved
+Description: A developer was careless with hardcoding unused, but still valid credentials for a testing account on the client-side.
+Hint: Have a look at the client-side code in the dev console.
+
+### 77. Login Amy
+Difficulty: ⭐⭐⭐ 3
+Status: ❌ Not Solved
+Description: Log in with Amy's original user credentials. (This could take 93.83 billion trillion trillion centuries to brute force, but luckily she did not read the "One Important Final Note")
+Hint: This challenge will make you go after a needle in a haystack.
+
+### 78. Access Log
+Difficulty: ⭐⭐⭐⭐ 4
+Status: ❌ Not Solved
+Description: Gain access to any access log file of the server.
+Hint: Who would want a server access log to be accessible through a web application?
+
+### 79. Forgotten Developer Backup
+Difficulty: ⭐⭐⭐⭐ 4
+Status: ❌ Not Solved
+Description: Access a developer's forgotten backup file.
+Hint: You need to trick a security mechanism into thinking that the file you want has a valid file type.
+
+### 80. Forgotten Sales Backup
+Difficulty: ⭐⭐⭐⭐ 4
+Status: ❌ Not Solved
+Description: Access a salesman's forgotten backup file.
+Hint: You need to trick a security mechanism into thinking that the file you want has a valid file type.
+
+### 81. GDPR Data Theft
+Difficulty: ⭐⭐⭐⭐ 4
+Status: ❌ Not Solved
+Description: Steal someone else's personal data without using Injection.
+Hint: Trick the regular Data Export to give you more than actually belongs to you.
+
+### 82. Leaked Unsafe Product
+Difficulty: ⭐⭐⭐⭐ 4
+Status: ❌ Not Solved
+Description: Identify an unsafe product that was removed from the shop and <a href="/#/contact">inform the shop</a> which ingredients are dangerous.
+Hint: Your own SQLi and someone else's Ctrl-V will be your accomplices in this challenge!
+
+### 83. Misplaced Signature File
+Difficulty: ⭐⭐⭐⭐ 4
+Status: ❌ Not Solved
+Description: Access a misplaced <a href="https://github.com/Neo23x0/sigma">SIEM signature</a> file.
+Hint: You need to trick a security mechanism into thinking that the file you want has a valid file type.
+
+### 84. Reset Uvogin's Password
+Difficulty: ⭐⭐⭐⭐ 4
+Status: ❌ Not Solved
+Description: Reset Uvogin's password via the <a href="/#/forgot-password">Forgot Password</a> mechanism with <i>the original answer</i> to his security question.
+Hint: You might have to do some OSINT on his social media personas to find out his honest answer to the security question.
+
+### 85. Email Leak
+Difficulty: ⭐⭐⭐⭐⭐ 5
+Status: ❌ Not Solved
+Description: Perform an unwanted information disclosure by accessing data cross-domain.
+Hint: Try to find and attack an endpoint that responds with user information. SQL Injection is not the solution here.
+
+### 86. Leaked Access Logs
+Difficulty: ⭐⭐⭐⭐⭐ 5
+Status: ❌ Not Solved
+Description: Dumpster dive the Internet for a leaked password and log in to the original user account it belongs to. (Creating a new account with the same password does not qualify as a solution.)
+Hint: Once you have it, a technique called "Password Spraying" might prove useful.
+
+### 87. Retrieve Blueprint
+Difficulty: ⭐⭐⭐⭐⭐ 5
+Status: ❌ Not Solved
+Description: Deprive the shop of earnings by downloading the blueprint for one of its products.
+Hint: The product you might want to give a closer look is the OWASP Juice Shop Logo (3D-printed).
+
+### 88. Leaked API Key
+Difficulty: ⭐⭐⭐⭐⭐ 5
+Status: ❌ Not Solved
+Description: <a href="/#/contact">Inform the shop</a> about a leaked API key. (Mention the exact key in your comment)
+Hint: The API call is part of a scheduled process "behind the scenes", i.e. completely unrelated to the web application.
+
+## UNVALIDATED REDIRECTS CHALLENGES
+----------------------------------------
+
+### 89. Outdated Allowlist
+Difficulty: ⭐ 1
+Status: ❌ Not Solved
+Description: Let us redirect you to one of our crypto currency addresses which are not promoted any longer.
+Hint: We might have failed to take this out of our code properly.
+
+### 90. Allowlist Bypass
+Difficulty: ⭐⭐⭐⭐ 4
+Status: ❌ Not Solved
+Description: Enforce a redirect to a page you are not supposed to redirect to.
+Hint: You have to find a way to beat the allowlist of allowed redirect URLs.
+
+## VULNERABLE COMPONENTS CHALLENGES
+----------------------------------------
+
+### 91. Legacy Typosquatting
+Difficulty: ⭐⭐⭐⭐ 4
+Status: ❌ Not Solved
+Description: <a href="/#/contact">Inform the shop</a> about a <i>typosquatting</i> trick it has been a victim of at least in <code>v6.2.0-SNAPSHOT</code>. (Mention the exact name of the culprit)
+Hint: This challenge has nothing to do with mistyping web domains. Investigate the forgotten developer's backup file instead.
+
+### 92. Vulnerable Library
+Difficulty: ⭐⭐⭐⭐ 4
+Status: ❌ Not Solved
+Description: <a href="/#/contact">Inform the shop</a> about a vulnerable library it is using. (Mention the exact library name and version in your comment)
+Hint: Report one of two possible answers via the "Customer Feedback" form. Do not forget to submit the library's version as well.
+
+### 93. Frontend Typosquatting
+Difficulty: ⭐⭐⭐⭐⭐ 5
+Status: ❌ Not Solved
+Description: <a href="/#/contact">Inform the shop</a> about a <i>typosquatting</i> imposter that dug itself deep into the frontend. (Mention the exact name of the culprit)
+Hint: This challenge has nothing to do with mistyping web domains. There is no conveniently misplaced file helping you with this one either. Or is there?
+
+### 94. Supply Chain Attack
+Difficulty: ⭐⭐⭐⭐⭐ 5
+Status: ❌ Not Solved
+Description: <a href="/#/contact">Inform the development team</a> about a danger to some of <em>their</em> credentials. (Send them the URL of the <em>original report</em> or an assigned CVE or another identifier of this vulnerability)
+Hint: This vulnerability will not affect any customer of the shop. It is aimed exclusively at its developers.
+
+### 95. Unsigned JWT
+Difficulty: ⭐⭐⭐⭐⭐ 5
+Status: ❌ Not Solved
+Description: Forge an essentially unsigned JWT token that impersonates the (non-existing) user <i>jwtn3d@juice-sh.op</i>.
+Hint: This challenge exploits a weird option that is supported when signing tokens with JWT.
+
+### 96. Kill Chatbot
+Difficulty: ⭐⭐⭐⭐⭐ 5
+Status: ❌ Not Solved
+Description: Permanently disable the support chatbot so that it can no longer answer customer queries.
+Hint: Think of a way to get a hold of the internal workings on the chatbot API.
+
+### 97. Local File Read
+Difficulty: ⭐⭐⭐⭐⭐ 5
+Status: ❌ Not Solved
+Description: Gain read access to an arbitrary local file on the web server. <em>(This challenge is <strong>potentially harmful</strong> on Docker!)</em>
+Hint: You should read up on vulnerabilities in popular NodeJs template engines.
+
+### 98. Arbitrary File Write
+Difficulty: ⭐⭐⭐⭐⭐⭐ 6
+Status: ❌ Not Solved
+Description: Overwrite the <a href="/ftp/legal.md">Legal Information</a> file. <em>(This challenge is <strong>potentially harmful</strong> on Docker!)</em>
+Hint: Look out for a tweet praising new functionality of the web shop. Then find a third party vulnerability associated with it.
+
+### 99. Forged Signed JWT
+Difficulty: ⭐⭐⭐⭐⭐⭐ 6
+Status: ❌ Not Solved
+Description: Forge an almost properly RSA-signed JWT token that impersonates the (non-existing) user <i>rsa_lord@juice-sh.op</i>.
+Hint: This challenge is explicitly not about acquiring the RSA private key used for JWT signing.
+
+## XSS CHALLENGES
+----------------------------------------
+
+### 100. DOM XSS
+Difficulty: ⭐ 1
+Status: ❌ Not Solved
+Description: Perform a <i>DOM</i> XSS attack with <code>&lt;iframe src="javascript:alert(`xss`)"&gt;</code>.
+Hint: Look for an input field where its content appears in the HTML when its form is submitted.
+
+### 101. Bonus Payload
+Difficulty: ⭐ 1
+Status: ❌ Not Solved
+Description: Use the bonus payload <code>&lt;iframe width=&quot;100%&quot; height=&quot;166&quot; scrolling=&quot;no&quot; frameborder=&quot;no&quot; allow=&quot;autoplay&quot; src=&quot;https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/771984076&amp;color=%23ff5500&amp;auto_play=true&amp;hide_related=false&amp;show_comments=true&amp;show_user=true&amp;show_reposts=false&amp;show_teaser=true&quot;&gt;&lt;/iframe&gt;</code> in the <i>DOM XSS</i> challenge.
+Hint: Copy + Paste = Solved!
+
+### 102. Reflected XSS
+Difficulty: ⭐⭐ 2
+Status: ❌ Not Solved
+Description: Perform a <i>reflected</i> XSS attack with <code>&lt;iframe src="javascript:alert(`xss`)"&gt;</code>. <em>(This challenge is <strong>potentially harmful</strong> on Docker!)</em>
+Hint: Look for a url parameter where its value appears in the page it is leading to.
+
+### 103. API-only XSS
+Difficulty: ⭐⭐⭐ 3
+Status: ❌ Not Solved
+Description: Perform a <i>persisted</i> XSS attack with <code>&lt;iframe src="javascript:alert(`xss`)"&gt;</code> without using the frontend application at all. <em>(This challenge is <strong>potentially harmful</strong> on Docker!)</em>
+Hint: You need to work with the server-side API directly. Try different HTTP verbs on different entities exposed through the API.
+
+### 104. Client-side XSS Protection
+Difficulty: ⭐⭐⭐ 3
+Status: ❌ Not Solved
+Description: Perform a <i>persisted</i> XSS attack with <code>&lt;iframe src="javascript:alert(`xss`)"&gt;</code> bypassing a <i>client-side</i> security mechanism. <em>(This challenge is <strong>potentially harmful</strong> on Docker!)</em>
+Hint: Only some input fields validate their input. Even less of these are persisted in a way where their content is shown on another screen.
+
+### 105. CSP Bypass
+Difficulty: ⭐⭐⭐⭐ 4
+Status: ❌ Not Solved
+Description: Bypass the Content Security Policy and perform an XSS attack with <code>&lt;script&gt;alert(`xss`)&lt;/script&gt;</code> on a legacy page within the application. <em>(This challenge is <strong>potentially harmful</strong> on Docker!)</em>
+Hint: What is even "better" than a legacy page with a homegrown RegEx sanitizer? Having CSP injection issues on the exact same page as well!
+
+### 106. HTTP-Header XSS
+Difficulty: ⭐⭐⭐⭐ 4
+Status: ❌ Not Solved
+Description: Perform a <i>persisted</i> XSS attack with <code>&lt;iframe src="javascript:alert(`xss`)"&gt;</code> through an HTTP header. <em>(This challenge is <strong>potentially harmful</strong> on Docker!)</em>
+Hint: Finding a piece of displayed information that could originate from an HTTP header is part of this challenge.
+
+### 107. Server-side XSS Protection
+Difficulty: ⭐⭐⭐⭐ 4
+Status: ❌ Not Solved
+Description: Perform a <i>persisted</i> XSS attack with <code>&lt;iframe src="javascript:alert(`xss`)"&gt;</code> bypassing a <i>server-side</i> security mechanism. <em>(This challenge is <strong>potentially harmful</strong> on Docker!)</em>
+Hint: The "Comment" field in the "Customer Feedback" screen is where you want to put your focus on.
+
+### 108. Video XSS
+Difficulty: ⭐⭐⭐⭐⭐⭐ 6
+Status: ❌ Not Solved
+Description: Embed an XSS payload <code>&lt;/script&gt;&lt;script&gt;alert(`xss`)&lt;/script&gt;</code> into our promo video. <em>(This challenge is <strong>potentially harmful</strong> on Docker!)</em>
+Hint: You have to reuse the vulnerability behind one other 6-star challenge to be able to solve this one.
+
+## XXE CHALLENGES
+----------------------------------------
+
+### 109. XXE Data Access
+Difficulty: ⭐⭐⭐ 3
+Status: ❌ Not Solved
+Description: Retrieve the content of <code>C:\Windows\system.ini</code> or <code>/etc/passwd</code> from the server. <em>(This challenge is <strong>potentially harmful</strong> on Docker!)</em>
+Hint: The leverage point for this challenge is the deprecated B2B interface.
+
+### 110. XXE DoS
+Difficulty: ⭐⭐⭐⭐⭐ 5
+Status: ❌ Not Solved
+Description: Give the server something to chew on for quite a while. <em>(This challenge is <strong>potentially harmful</strong> on Docker!)</em>
+Hint: It is not as easy as sending a large amount of data directly to the deprecated B2B interface.
+
+================================================================================
+
+## CHALLENGE STATISTICS
+----------------------------------------
+
+### By Category:
+- Broken Access Control: 11 challenges
+- Broken Anti Automation: 4 challenges
+- Broken Authentication: 9 challenges
+- Cryptographic Issues: 5 challenges
+- Improper Input Validation: 12 challenges
+- Injection: 11 challenges
+- Insecure Deserialization: 3 challenges
+- Miscellaneous: 7 challenges
+- Security Misconfiguration: 4 challenges
+- Security through Obscurity: 3 challenges
+- Sensitive Data Exposure: 19 challenges
+- Unvalidated Redirects: 2 challenges
+- Vulnerable Components: 9 challenges
+- XSS: 9 challenges
+- XXE: 2 challenges
+
+### By Difficulty:
+- ⭐ 1: 14 challenges
+- ⭐⭐ 2: 15 challenges
+- ⭐⭐⭐ 3: 24 challenges
+- ⭐⭐⭐⭐ 4: 25 challenges
+- ⭐⭐⭐⭐⭐ 5: 20 challenges
+- ⭐⭐⭐⭐⭐⭐ 6: 12 challenges

@@ -1,0 +1,15 @@
+#!/usr/bin/expect -f
+set timeout 30
+set password {\$Hg5sD&8Lp@9}
+
+# Copy the script
+spawn scp /Users/walterbarr_1/sql-injection-lab/check_juice_port.sh root@155.138.197.128:/tmp/
+expect "password:"
+send "$password\r"
+expect eof
+
+# Execute the script
+spawn ssh root@155.138.197.128 "bash /tmp/check_juice_port.sh"
+expect "password:"
+send "$password\r"
+interact

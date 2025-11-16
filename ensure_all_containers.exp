@@ -1,0 +1,80 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+# SSH and ensure all containers are running
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "echo 'Ensuring all user containers are running...'\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+
+# Ensure firewall allows all CTF ports
+send "echo 'Opening firewall ports 3001-3020...'\r"
+expect "# "
+send "for port in {3001..3020}; do ufw allow \$port/tcp 2>/dev/null; done\r"
+expect "# "
+
+# Create/restart containers for all existing users
+send "echo ''\r"
+expect "# "
+send "echo 'Creating containers for all registered users...'\r"
+expect "# "
+
+# Get all users and create containers
+send "mysql -u root ctf_platform -e 'SELECT id, username FROM users;' 2>/dev/null | tail -n +2 | while read id username; do echo \"Creating container for user \$id (\$username)...\"; docker stop juice-user\$id 2>/dev/null || true; docker rm juice-user\$id 2>/dev/null || true; docker run -d --name juice-user\$id -p \$((3000+id)):3000 --restart unless-stopped bkimminich/juice-shop; done\r"
+expect "# "
+
+# Wait for containers to start
+send "sleep 5\r"
+expect "# "
+
+# Show all running containers
+send "echo ''\r"
+expect "# "
+send "echo 'All running Juice Shop containers:'\r"
+expect "# "
+send "docker ps --format 'table {{.Names}}\\t{{.Ports}}\\t{{.Status}}' | grep juice\r"
+expect "# "
+
+# Test accessibility
+send "echo ''\r"
+expect "# "
+send "echo 'Testing container accessibility:'\r"
+expect "# "
+send "for port in 3001 3002 3003; do echo -n \"Port \$port: \"; curl -s -o /dev/null -w '%{http_code}' http://localhost:\$port && echo ' ✅' || echo ' ❌'; done\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo 'ALL CONTAINERS READY!'\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'Users can now access their instances:'\r"
+expect "# "
+send "echo '• testuser1: http://155.138.197.128:3001'\r"
+expect "# "
+send "echo '• testuser2: http://155.138.197.128:3002'\r"
+expect "# "
+send "echo '• Wonkastocks: http://155.138.197.128:3003'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'All ports 3001-3020 are open in firewall'\r"
+expect "# "
+
+send "exit\r"
+expect eof

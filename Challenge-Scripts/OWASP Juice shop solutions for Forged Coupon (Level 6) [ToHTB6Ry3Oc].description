@@ -1,0 +1,7 @@
+In this video let's see the solution for owasp juice shop forged coupon in level 6.
+Forge a coupon code that gives you a discount of at least 80%
+
+In order to solve this challenge we need to take the latest coupon from OWAP juice shop's twitter page
+But initially i took an older coupon and hence it was not working.
+But after that, trying with the latest coupon, it works fine.
+So Please consider that while trying from your side

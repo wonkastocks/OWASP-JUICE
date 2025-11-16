@@ -1,0 +1,53 @@
+#!/usr/bin/expect -f
+
+set timeout 60
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "cd /var/www/ctf-platform/\r"
+expect "# "
+
+# Manually edit the dashboard.php file
+send "nano dashboard.php\r"
+expect "nano"
+
+# Wait a bit for nano to open
+sleep 1
+
+# Search for instanceUrl (Ctrl+W)
+send "\027"
+send "instanceUrl\r"
+
+# The line should be visible now, we need to replace it
+# Delete the current line (Ctrl+K)
+send "\013"
+
+# Type the new lines
+send "            \\\$instanceNumber = \\\$port - 3000;\r"
+send "            \\\$instanceUrl = \"https://instance\" . \\\$instanceNumber . \".wonkatech.org\";\r"
+
+# Save and exit (Ctrl+X, Y, Enter)
+send "\030"
+expect "Save modified buffer"
+send "y"
+expect "File Name to Write"
+send "\r"
+
+expect "# "
+
+# Verify the change
+send "grep -A1 instanceNumber dashboard.php\r"
+expect "# "
+
+send "echo 'Dashboard updated for tunnel subdomains!'\r"
+expect "# "
+
+send "exit\r"
+expect eof

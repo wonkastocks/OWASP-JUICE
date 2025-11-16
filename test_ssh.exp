@@ -1,0 +1,36 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$R00tbeer02}
+
+# Try the password with variable
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect {
+    "# " {
+        puts "\nLogin successful!"
+        send "echo 'Connected successfully!'\r"
+        expect "# "
+        send "exit\r"
+        expect eof
+    }
+    "Permission denied" {
+        puts "\nLogin failed - password incorrect"
+    }
+    timeout {
+        puts "\nConnection timed out"
+    }
+}
+
+puts "\nTest complete"

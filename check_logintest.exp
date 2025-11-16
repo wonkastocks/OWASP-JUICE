@@ -1,0 +1,26 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect "# "
+
+# Check what's in the file
+send "head -20 /var/www/html/logintest.php\r"
+expect "# "
+
+send "exit\r"
+expect eof

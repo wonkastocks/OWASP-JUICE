@@ -1,0 +1,66 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" { send "$password\r" }
+}
+expect "# "
+
+# Backup current users.php
+send "cp /var/www/ctf-platform/admin/users.php /var/www/ctf-platform/admin/users_original.php\r"
+expect "# "
+
+# Copy enhanced users.php
+send "cat > /var/www/ctf-platform/admin/users.php << 'ENDOFFILE'\r"
+expect "> "
+
+# Read the file content
+set fp [open "/Users/walterbarr_1/sql-injection-lab/admin/users_enhanced.php" r]
+set file_data [read $fp]
+close $fp
+
+# Send file content
+send $file_data
+send "\rENDOFFILE\r"
+expect "# "
+
+# Copy test scoring script
+send "cat > /var/www/ctf-platform/admin/test_scoring.php << 'ENDOFFILE2'\r"
+expect "> "
+
+set fp [open "/Users/walterbarr_1/sql-injection-lab/admin/test_scoring.php" r]
+set file_data [read $fp]
+close $fp
+
+send $file_data
+send "\rENDOFFILE2\r"
+expect "# "
+
+# Set permissions
+send "chown www-data:www-data /var/www/ctf-platform/admin/*.php\r"
+expect "# "
+
+send "chmod 644 /var/www/ctf-platform/admin/*.php\r"
+expect "# "
+
+send "chmod 640 /var/www/ctf-platform/admin/config.php\r"
+expect "# "
+
+# Test the scoring system
+send "php /var/www/ctf-platform/admin/test_scoring.php | head -20\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\n✅ Enhanced admin panel deployed!"
+puts "\n📌 New Features Added:"
+puts "   - Create new users"
+puts "   - Edit user details"
+puts "   - Reset user passwords"
+puts "   - Assign/unassign containers"
+puts "   - Scoring system testing"
+puts "\nAccess at: https://wonkatech.org/admin/admin_login.php"

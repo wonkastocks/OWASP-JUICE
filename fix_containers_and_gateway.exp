@@ -1,0 +1,85 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+
+# SSH to the server
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "\$Ocean4Waves#\r"
+    }
+    "Are you sure you want to continue connecting" {
+        send "yes\r"
+        expect "password:"
+        send "\$Ocean4Waves#\r"
+    }
+}
+
+expect "root@*"
+
+# Step 1: Check which containers are having issues
+send "echo '=== Checking Container Status ==='\r"
+expect "root@*"
+
+send "docker ps -a | grep juice | awk '{print \$1, \$NF}' | while read id name; do curl -s -o /dev/null -w \"%{http_code} \$name\\n\" http://localhost:\$(docker port \$id 3000 | cut -d: -f2) 2>/dev/null || echo \"000 \$name\"; done\r"
+expect "root@*"
+
+# Step 2: Restart any stopped containers
+send "echo '=== Restarting Stopped Containers ==='\r"
+expect "root@*"
+
+send "docker ps -a | grep 'Exited' | grep juice | awk '{print \$NF}' | while read container; do echo \"Restarting \$container\"; docker start \$container; sleep 2; done\r"
+expect "root@*"
+
+# Step 3: Fix container port mappings if needed
+send "echo '=== Verifying Port Mappings ==='\r"
+expect "root@*"
+
+send "for i in {1..15}; do container=\"juice\$i\"; port=\$((3000 + i)); docker ps | grep \$container > /dev/null && echo \"\$container is running on port \$port\" || (docker stop \$container 2>/dev/null; docker rm \$container 2>/dev/null; docker run -d --name \$container -p \$port:3000 bkimminich/juice-shop); done\r"
+expect "root@*"
+
+# Step 4: Update database with container assignments
+send "echo '=== Updating Container Assignments ==='\r"
+expect "root@*"
+
+send "mysql -u root ctf_platform << 'EOF'
+-- Clear existing assignments
+UPDATE containers SET user_id = NULL, allocated = 0;
+
+-- Assign containers based on users table
+UPDATE containers c
+JOIN users u ON u.instance_url = CONCAT('https://juice', c.container_id, '.wonkatech.org')
+SET c.user_id = u.id, c.allocated = 1
+WHERE u.instance_url IS NOT NULL;
+
+-- Show assignments
+SELECT c.container_id, c.container_name, u.username, c.allocated, c.status
+FROM containers c
+LEFT JOIN users u ON c.user_id = u.id
+ORDER BY c.container_id;
+EOF\r"
+expect "root@*"
+
+# Step 5: Verify Cloudflare tunnel is routing correctly
+send "echo '=== Checking Cloudflare Tunnel ==='\r"
+expect "root@*"
+
+send "systemctl status cloudflared | head -5\r"
+expect "root@*"
+
+# Step 6: Test each juice instance
+send "echo '=== Testing Each Instance ==='\r"
+expect "root@*"
+
+send "for i in {1..15}; do echo -n \"juice\$i: \"; curl -s -o /dev/null -w \"%{http_code}\" https://juice\$i.wonkatech.org 2>/dev/null || echo \"FAILED\"; echo; done\r"
+expect "root@*"
+
+# Step 7: Fix any remaining issues
+send "echo '=== Final Container Check ==='\r"
+expect "root@*"
+
+send "docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' | grep juice\r"
+expect "root@*"
+
+send "exit\r"
+expect eof

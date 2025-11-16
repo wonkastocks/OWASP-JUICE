@@ -1,0 +1,38 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+
+spawn ssh root@155.138.197.128
+expect "password:"
+send "\$\$R00tbeer02\r"
+expect "root@JUICESHOP:~#"
+
+send "cd /var/www/html/admin/\r"
+expect "root@JUICESHOP:~#"
+
+send "cp admin_login.php admin_login.php.backup_\$(date +%s)\r"
+expect "root@JUICESHOP:~#"
+
+send "cp test_login.php admin_login.php\r"
+expect "root@JUICESHOP:~#"
+
+send "rm test_login.php\r"
+expect "root@JUICESHOP:~#"
+
+send "chown www-data:www-data admin_login.php\r"
+expect "root@JUICESHOP:~#"
+
+send "chmod 755 admin_login.php\r"
+expect "root@JUICESHOP:~#"
+
+send "ls -la admin_login.php\r"
+expect "root@JUICESHOP:~#"
+
+send "ls -la test_login.php 2>/dev/null || echo 'test_login.php successfully removed'\r"
+expect "root@JUICESHOP:~#"
+
+send "echo 'Admin page swap completed successfully!'\r"
+expect "root@JUICESHOP:~#"
+
+send "exit\r"
+expect eof

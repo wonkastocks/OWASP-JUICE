@@ -1,0 +1,51 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+
+# Connect to server
+spawn ssh root@155.138.197.128
+expect "password:"
+send "\$Tr0ub4dor&3\r"
+
+expect "root@JUICESHOP:~#"
+
+# Create backup of current admin_login.php
+send "echo '=== Backing up current admin_login.php ==='\r"
+expect "root@JUICESHOP:~#"
+send "cp /var/www/html/admin/admin_login.php /var/www/html/admin/admin_login.php.backup_\$(date +%s)\r"
+expect "root@JUICESHOP:~#"
+
+# Replace admin_login.php with test_login.php
+send "echo '=== Replacing admin_login.php with test_login.php ==='\r"
+expect "root@JUICESHOP:~#"
+send "cp /var/www/html/admin/test_login.php /var/www/html/admin/admin_login.php\r"
+expect "root@JUICESHOP:~#"
+
+# Remove test_login.php
+send "echo '=== Removing test_login.php ==='\r"
+expect "root@JUICESHOP:~#"
+send "rm /var/www/html/admin/test_login.php\r"
+expect "root@JUICESHOP:~#"
+
+# Set correct permissions
+send "echo '=== Setting correct permissions ==='\r"
+expect "root@JUICESHOP:~#"
+send "chown www-data:www-data /var/www/html/admin/admin_login.php\r"
+expect "root@JUICESHOP:~#"
+send "chmod 755 /var/www/html/admin/admin_login.php\r"
+expect "root@JUICESHOP:~#"
+
+# Verify the swap
+send "echo '=== Verifying the swap ==='\r"
+expect "root@JUICESHOP:~#"
+send "ls -la /var/www/html/admin/admin_login.php\r"
+expect "root@JUICESHOP:~#"
+send "ls -la /var/www/html/admin/test_login.php 2>/dev/null || echo 'test_login.php successfully removed'\r"
+expect "root@JUICESHOP:~#"
+
+send "echo '=== Admin login page swap completed! ==='\r"
+expect "root@JUICESHOP:~#"
+
+# Exit
+send "exit\r"
+expect eof

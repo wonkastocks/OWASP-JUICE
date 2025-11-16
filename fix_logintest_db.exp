@@ -1,0 +1,45 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect "# "
+
+# Check the working login.php for correct credentials
+send "grep 'servername\\|username\\|password\\|dbname' /var/www/html/login.php | head -10\r"
+expect "# "
+
+# Update logintest.php with correct credentials
+send "sed -i 's/\\$username = \"wally_user\";/\\$username = \"root\";/' /var/www/html/logintest.php\r"
+expect "# "
+
+send "sed -i 's/\\$password = \"MonkeyParts2024!\";/\\$password = \"\";/' /var/www/html/logintest.php\r"
+expect "# "
+
+send "sed -i 's/\\$dbname = \"wallys_monkey_parts\";/\\$dbname = \"sql_injection_db\";/' /var/www/html/logintest.php\r"
+expect "# "
+
+# Restart Apache
+send "systemctl restart apache2\r"
+expect "# "
+
+send "echo 'Database credentials fixed!'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\nDatabase credentials updated!"

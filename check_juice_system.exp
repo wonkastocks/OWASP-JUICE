@@ -1,0 +1,64 @@
+#!/usr/bin/expect -f
+
+set timeout 60
+set password {\$\$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "Are you sure you want to continue connecting" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect "root@*"
+
+# Check Docker containers
+send "echo '=== Juice Shop Containers ==='\r"
+expect "root@*"
+send "docker ps -a | grep juice\r"
+expect "root@*"
+
+# Check Apache and web services
+send "echo '=== Web Services Status ==='\r"
+expect "root@*"
+send "systemctl status apache2 --no-pager | head -10\r"
+expect "root@*"
+
+# Check database structure
+send "echo '=== Database Tables ==='\r"
+expect "root@*"
+send "mysql -u root -p'rootpassword' -e 'USE ctf_platform; SHOW TABLES;' 2>/dev/null\r"
+expect "root@*"
+
+# Check admin panel files
+send "echo '=== Admin Panel Files ==='\r"
+expect "root@*"
+send "ls -la /var/www/html/admin/ 2>/dev/null | head -10\r"
+expect "root@*"
+
+# Check main platform files
+send "echo '=== Platform Files ==='\r"
+expect "root@*"
+send "ls -la /var/www/html/ | grep -E '\\.php' | head -10\r"
+expect "root@*"
+
+# Check for any error logs
+send "echo '=== Recent Errors ==='\r"
+expect "root@*"
+send "tail -10 /var/log/apache2/error.log 2>/dev/null\r"
+expect "root@*"
+
+# Check Cloudflare tunnel status
+send "echo '=== Cloudflare Tunnel Status ==='\r"
+expect "root@*"
+send "systemctl status cloudflared --no-pager | head -10\r"
+expect "root@*"
+
+send "exit\r"
+expect eof

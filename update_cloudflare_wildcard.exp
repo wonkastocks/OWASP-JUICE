@@ -1,0 +1,79 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+
+# Connect to server
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "\$\$R00tbeer02\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "\$\$R00tbeer02\r"
+    }
+}
+
+expect "root@*"
+
+# Check current Cloudflare tunnel config
+send "cat /root/.cloudflared/config.yml\r"
+expect "root@*"
+
+# Update Cloudflare tunnel config to include wildcard for juice subdomains
+send "cat > /root/.cloudflared/config.yml << 'EOF'\r"
+send "tunnel: 21db0354-eea2-4c03-a3c1-92c837797e86\r"
+send "credentials-file: /root/.cloudflared/21db0354-eea2-4c03-a3c1-92c837797e86.json\r"
+send "\r"
+send "ingress:\r"
+send "  # Main CTF platform\r"
+send "  - hostname: wonkatech.org\r"
+send "    service: http://localhost:80\r"
+send "  \r"
+send "  # Individual Juice Shop instances\r"
+send "  - hostname: juice1.wonkatech.org\r"
+send "    service: http://localhost:3001\r"
+send "  - hostname: juice2.wonkatech.org\r"
+send "    service: http://localhost:3002\r"
+send "  - hostname: juice3.wonkatech.org\r"
+send "    service: http://localhost:3003\r"
+send "  - hostname: juice4.wonkatech.org\r"
+send "    service: http://localhost:3004\r"
+send "  - hostname: juice5.wonkatech.org\r"
+send "    service: http://localhost:3005\r"
+send "  - hostname: juice6.wonkatech.org\r"
+send "    service: http://localhost:3006\r"
+send "  - hostname: juice7.wonkatech.org\r"
+send "    service: http://localhost:3007\r"
+send "  - hostname: juice8.wonkatech.org\r"
+send "    service: http://localhost:3008\r"
+send "  - hostname: juice9.wonkatech.org\r"
+send "    service: http://localhost:3009\r"
+send "  - hostname: juice10.wonkatech.org\r"
+send "    service: http://localhost:3010\r"
+send "  \r"
+send "  # Catch-all\r"
+send "  - service: http_status:404\r"
+send "EOF\r"
+expect "root@*"
+
+# Restart cloudflared service
+send "systemctl restart cloudflared\r"
+expect "root@*"
+
+# Wait for service to start
+send "sleep 5\r"
+expect "root@*"
+
+# Check if service is running
+send "systemctl status cloudflared | head -10\r"
+expect "root@*"
+
+# Test local access to juice6
+send "curl -I http://localhost:3006 | head -5\r"
+expect "root@*"
+
+send "exit\r"
+expect eof

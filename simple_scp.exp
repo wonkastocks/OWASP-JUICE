@@ -1,0 +1,16 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+spawn scp /Users/walterbarr_1/sql-injection-lab/clean_login.php root@155.138.197.128:/root/clean_login.php
+
+expect {
+    "(yes/no)?" {
+        send "yes\r"
+        exp_continue
+    }
+    "password:" {
+        send "\$R00tbeer02\r"
+    }
+}
+
+expect eof

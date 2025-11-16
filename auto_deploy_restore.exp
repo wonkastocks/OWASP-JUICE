@@ -1,0 +1,65 @@
+#!/usr/bin/expect -f
+set timeout 600
+log_user 1
+
+puts "==========================================="
+puts "🚀 AUTO-DEPLOYING RESTORE SCRIPT"
+puts "==========================================="
+
+# First, copy the restore script
+puts "\n📤 Copying restore script to server..."
+spawn scp /Users/walterbarr_1/sql-injection-lab/restore_all_services.sh root@155.138.197.128:/tmp/
+expect {
+    "yes/no" {
+        send "yes\r"
+        exp_continue
+    }
+    "password:" {
+        send "\\\$Hg5sD&8Lp@9\r"
+        expect eof
+    }
+    timeout {
+        puts "\n❌ Timeout copying file"
+        exit 1
+    }
+}
+
+puts "\n✅ Script copied successfully!"
+puts "\n🔧 Executing restore script on server..."
+
+# Now execute the script
+spawn ssh root@155.138.197.128 "bash /tmp/restore_all_services.sh"
+expect {
+    "password:" {
+        send "\\\$Hg5sD&8Lp@9\r"
+        expect {
+            "SERVICE STATUS" {
+                puts "\n✅ Services restored successfully!"
+                exp_continue
+            }
+            "ACCESS URLS" {
+                puts "\n📋 Capturing access URLs..."
+                exp_continue
+            }
+            eof {
+                puts "\n✅ Script execution completed!"
+            }
+            timeout {
+                puts "\n⏱️ Script is still running (this is normal for npm install)..."
+                exp_continue
+            }
+        }
+    }
+    timeout {
+        puts "\n❌ Connection timeout"
+        exit 1
+    }
+}
+
+puts "\n==========================================="
+puts "✅ DEPLOYMENT COMPLETE!"
+puts "==========================================="
+puts "\nYou should now be able to access:"
+puts "1. http://155.138.197.128 - CTF Platform"
+puts "2. http://155.138.197.128:4000 - Juice Shop Standalone (XSS works!)"
+puts "3. https://juice3.wonkatech.org - Juice Shop Docker"

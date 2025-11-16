@@ -1,0 +1,170 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+puts "🔐 Deploying HTTPS configuration for containers..."
+
+# Copy configuration files
+spawn scp /Users/walterbarr_1/sql-injection-lab/setup_container_https.sh root@155.138.197.128:/tmp/
+expect {
+    "password:" { send "$password\r" }
+}
+expect eof
+
+# SSH to server
+spawn ssh root@155.138.197.128
+expect {
+    "password:" { send "$password\r" }
+}
+expect "# "
+
+# First, add container_url column if it doesn't exist
+send "mysql -u root ctf_platform << 'EOF'
+-- Add container_url column if it doesn't exist
+ALTER TABLE containers ADD COLUMN container_url VARCHAR(255) DEFAULT NULL;
+
+-- Update with HTTPS URLs
+UPDATE containers SET container_url = CASE
+    WHEN port = 3001 THEN 'https://juice1.wonkatech.org'
+    WHEN port = 3002 THEN 'https://juice2.wonkatech.org'
+    WHEN port = 3003 THEN 'https://juice3.wonkatech.org'
+    WHEN port = 3004 THEN 'https://juice4.wonkatech.org'
+    WHEN port = 3005 THEN 'https://juice5.wonkatech.org'
+    WHEN port = 3006 THEN 'https://juice6.wonkatech.org'
+    WHEN port = 3007 THEN 'https://juice7.wonkatech.org'
+    WHEN port = 3008 THEN 'https://juice8.wonkatech.org'
+    WHEN port = 3009 THEN 'https://juice9.wonkatech.org'
+    WHEN port = 3010 THEN 'https://juice10.wonkatech.org'
+    WHEN port = 3011 THEN 'https://juice11.wonkatech.org'
+    WHEN port = 3012 THEN 'https://juice12.wonkatech.org'
+    WHEN port = 3013 THEN 'https://juice13.wonkatech.org'
+    WHEN port = 3014 THEN 'https://juice14.wonkatech.org'
+    WHEN port = 3015 THEN 'https://juice15.wonkatech.org'
+    WHEN port = 3016 THEN 'https://juice16.wonkatech.org'
+    WHEN port = 3017 THEN 'https://juice17.wonkatech.org'
+    WHEN port = 3018 THEN 'https://juice18.wonkatech.org'
+    WHEN port = 3019 THEN 'https://juice19.wonkatech.org'
+    WHEN port = 3020 THEN 'https://juice20.wonkatech.org'
+    ELSE container_url
+END WHERE port BETWEEN 3001 AND 3020;
+
+-- Show results
+SELECT container_name, port, container_url FROM containers ORDER BY port;
+EOF\r"
+expect "# "
+
+# Check current Cloudflare configuration
+send "echo '\\n📋 Current Cloudflare Tunnel status:'\r"
+expect "# "
+
+send "systemctl status cloudflared | head -10\r"
+expect "# "
+
+# Backup current config
+send "cp /etc/cloudflared/config.yml /etc/cloudflared/config.yml.backup.\$(date +%Y%m%d_%H%M%S) 2>/dev/null\r"
+expect "# "
+
+# Create new Cloudflare config
+send "cat > /etc/cloudflared/config.yml << 'EOF'
+tunnel: wonkatech-tunnel
+credentials-file: /root/.cloudflared/cert.pem
+
+ingress:
+  # Main site and admin
+  - hostname: wonkatech.org
+    service: http://localhost:80
+  
+  # Juice Shop instances
+  - hostname: juice1.wonkatech.org
+    service: http://localhost:3001
+  - hostname: juice2.wonkatech.org
+    service: http://localhost:3002
+  - hostname: juice3.wonkatech.org
+    service: http://localhost:3003
+  - hostname: juice4.wonkatech.org
+    service: http://localhost:3004
+  - hostname: juice5.wonkatech.org
+    service: http://localhost:3005
+  - hostname: juice6.wonkatech.org
+    service: http://localhost:3006
+  - hostname: juice7.wonkatech.org
+    service: http://localhost:3007
+  - hostname: juice8.wonkatech.org
+    service: http://localhost:3008
+  - hostname: juice9.wonkatech.org
+    service: http://localhost:3009
+  - hostname: juice10.wonkatech.org
+    service: http://localhost:3010
+  - hostname: juice11.wonkatech.org
+    service: http://localhost:3011
+  - hostname: juice12.wonkatech.org
+    service: http://localhost:3012
+  - hostname: juice13.wonkatech.org
+    service: http://localhost:3013
+  - hostname: juice14.wonkatech.org
+    service: http://localhost:3014
+  - hostname: juice15.wonkatech.org
+    service: http://localhost:3015
+  - hostname: juice16.wonkatech.org
+    service: http://localhost:3016
+  - hostname: juice17.wonkatech.org
+    service: http://localhost:3017
+  - hostname: juice18.wonkatech.org
+    service: http://localhost:3018
+  - hostname: juice19.wonkatech.org
+    service: http://localhost:3019
+  - hostname: juice20.wonkatech.org
+    service: http://localhost:3020
+  
+  # Catch-all
+  - service: http_status:404
+EOF\r"
+expect "# "
+
+# Validate the config
+send "cloudflared tunnel ingress validate\r"
+expect "# "
+
+# Restart Cloudflare Tunnel
+send "systemctl restart cloudflared\r"
+expect "# "
+
+send "sleep 3\r"
+expect "# "
+
+# Check status
+send "systemctl status cloudflared | head -10\r"
+expect "# "
+
+# Test one of the endpoints
+send "echo '\\n🧪 Testing HTTPS access:'\r"
+expect "# "
+
+send "curl -s -o /dev/null -w '%{http_code}' https://juice3.wonkatech.org 2>/dev/null || echo 'Waiting for DNS propagation...'\r"
+expect "# "
+
+send "echo '\\n✅ HTTPS configuration deployed!'\r"
+expect "# "
+
+send "echo '\\n📌 Container URLs:'\r"
+expect "# "
+
+send "echo '   juice1.wonkatech.org → Port 3001'\r"
+expect "# "
+send "echo '   juice2.wonkatech.org → Port 3002'\r"
+expect "# "
+send "echo '   juice3.wonkatech.org → Port 3003'\r"
+expect "# "
+send "echo '   ...and so on up to juice20.wonkatech.org'\r"
+expect "# "
+
+send "echo '\\n⚠️  Note: DNS records need to be added in Cloudflare dashboard'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\n✅ HTTPS configuration deployed!"
+puts "\n📌 Next step: Add CNAME records in Cloudflare:"
+puts "   juice1-juice20.wonkatech.org → wonkatech.org"

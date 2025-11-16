@@ -1,0 +1,119 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+# Copy both fixed files
+spawn scp /tmp/dashboard_fixed.php /tmp/reset_password_fixed.php root@155.138.197.128:/tmp/
+expect {
+    "password:" {
+        send "$password\r"
+        expect "100%"
+    }
+}
+
+# SSH and deploy
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "echo 'Deploying dashboard and reset password fixes...'\r"
+expect "# "
+
+# Backup existing files
+send "cp /var/www/ctf-platform/dashboard.php /var/www/ctf-platform/dashboard.php.bak 2>/dev/null || true\r"
+expect "# "
+send "cp /var/www/ctf-platform/reset_password.php /var/www/ctf-platform/reset_password.php.bak 2>/dev/null || true\r"
+expect "# "
+
+# Deploy dashboard fix
+send "cp /tmp/dashboard_fixed.php /var/www/ctf-platform/dashboard.php\r"
+expect "# "
+send "chmod 644 /var/www/ctf-platform/dashboard.php\r"
+expect "# "
+send "chown www-data:www-data /var/www/ctf-platform/dashboard.php\r"
+expect "# "
+
+# Deploy reset password fix
+send "cp /tmp/reset_password_fixed.php /var/www/ctf-platform/reset_password.php\r"
+expect "# "
+send "chmod 644 /var/www/ctf-platform/reset_password.php\r"
+expect "# "
+send "chown www-data:www-data /var/www/ctf-platform/reset_password.php\r"
+expect "# "
+
+# Add instance_url column if it doesn't exist
+send "mysql -u root ctf_platform -e \"ALTER TABLE users ADD COLUMN IF NOT EXISTS instance_url VARCHAR(255) DEFAULT NULL;\" 2>/dev/null || true\r"
+expect "# "
+
+# Add reset token columns if they don't exist
+send "mysql -u root ctf_platform -e \"ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token VARCHAR(64) DEFAULT NULL, ADD COLUMN IF NOT EXISTS reset_token_expiry DATETIME DEFAULT NULL;\" 2>/dev/null || true\r"
+expect "# "
+
+# Test PHP syntax
+send "php -l /var/www/ctf-platform/dashboard.php\r"
+expect "# "
+send "php -l /var/www/ctf-platform/reset_password.php\r"
+expect "# "
+
+# Create logout.php if it doesn't exist
+send "test -f /var/www/ctf-platform/logout.php || cat > /var/www/ctf-platform/logout.php << 'EOF'\r"
+send "<?php\r"
+send "session_start();\r"
+send "session_destroy();\r"
+send "header('Location: login.php');\r"
+send "exit();\r"
+send "?>\r"
+send "EOF\r"
+expect "# "
+
+send "chmod 644 /var/www/ctf-platform/logout.php 2>/dev/null || true\r"
+expect "# "
+send "chown www-data:www-data /var/www/ctf-platform/logout.php 2>/dev/null || true\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo 'DASHBOARD AND RESET PASSWORD FIXES DEPLOYED!'\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo '✅ Fixed dashboard.php - no more undefined instanceUrl error'\r"
+expect "# "
+send "echo '✅ Dashboard now properly handles user sessions and instances'\r"
+expect "# "
+send "echo '✅ Fixed reset_password.php - removed session_start from top'\r"
+expect "# "
+send "echo '✅ Password reset emails now include clickable links with tokens'\r"
+expect "# "
+send "echo '✅ Added logout.php for user session management'\r"
+expect "# "
+send "echo '✅ Database updated with instance_url and reset token columns'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'Users can now:'\r"
+expect "# "
+send "echo '• Login and access their dashboard without errors'\r"
+expect "# "
+send "echo '• Launch their Juice Shop instances'\r"
+expect "# "
+send "echo '• Reset passwords via email with secure tokens'\r"
+expect "# "
+send "echo '• Logout properly from their sessions'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'Test at: https://wonkatech.org'\r"
+expect "# "
+
+send "exit\r"
+expect eof

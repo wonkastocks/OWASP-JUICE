@@ -1,0 +1,101 @@
+#!/usr/bin/expect -f
+
+set timeout 60
+set password {$$R00tbeer02}
+
+puts "🔧 Fixing dashboard path and content..."
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" { send "$password\r" }
+}
+expect "# "
+
+# Find the correct dashboard location
+send "find /var/www -name 'dashboard.php' -type f 2>/dev/null\r"
+expect "# "
+
+# Check if dashboard exists at different location
+send "ls -la /var/www/html/dashboard.php 2>/dev/null || echo 'Not in /var/www/html'\r"
+expect "# "
+
+# Copy dashboard to correct location
+send "cp /var/www/ctf-platform/dashboard.php /var/www/html/dashboard.php 2>/dev/null\r"
+expect "# "
+
+# Check the content
+send "head -50 /var/www/ctf-platform/dashboard.php\r"
+expect "# "
+
+# Test if we can access it via web
+send "curl -s http://localhost/dashboard.php | grep -c 'Dashboard\\|Welcome\\|Instance' || echo '0 matches'\r"
+expect "# "
+
+# Check Apache DocumentRoot
+send "grep DocumentRoot /etc/apache2/sites-enabled/000-default.conf\r"
+expect "# "
+
+# Apply proper fix to dashboard content
+send "cat > /tmp/complete_dashboard_fix.php << 'EOFPHP'
+<?php
+\$file = '/var/www/ctf-platform/dashboard.php';
+\$content = file_get_contents(\$file);
+
+// Fix the instance URL part
+\$fixed = str_replace(
+    '\\\$instanceUrl = \"http://155.138.197.128:\\\$port\";',
+    '\\\$instanceNum = \\\$port - 3000;
+    \\\$instanceUrl = \"https://juice\" . \\\$instanceNum . \".wonkatech.org\";',
+    \$content
+);
+
+// Fix any hardcoded IPs
+for (\$i = 1; \$i <= 20; \$i++) {
+    \$port = 3000 + \$i;
+    \$fixed = str_replace(
+        \"http://155.138.197.128:\$port\",
+        \"https://juice\$i.wonkatech.org\",
+        \$fixed
+    );
+}
+
+file_put_contents(\$file, \$fixed);
+
+// Also copy to /var/www/html if needed
+if (file_exists('/var/www/html/')) {
+    file_put_contents('/var/www/html/dashboard.php', \$fixed);
+}
+
+echo \"Dashboard content fixed\\n\";
+?>
+EOFPHP\r"
+expect "# "
+
+send "php /tmp/complete_dashboard_fix.php\r"
+expect "# "
+
+# Set permissions
+send "chown www-data:www-data /var/www/ctf-platform/dashboard.php\r"
+expect "# "
+send "chown www-data:www-data /var/www/html/dashboard.php 2>/dev/null\r"
+expect "# "
+
+# Check file size to ensure it's not empty
+send "echo '\\n📊 File sizes:'\r"
+expect "# "
+send "ls -la /var/www/ctf-platform/dashboard.php\r"
+expect "# "
+send "ls -la /var/www/html/dashboard.php 2>/dev/null\r"
+expect "# "
+
+# Restart Apache
+send "systemctl restart apache2\r"
+expect "# "
+
+send "echo '\\n✅ Dashboard path and content fixed!'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\n✅ Dashboard should now be accessible!"

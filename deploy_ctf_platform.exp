@@ -1,0 +1,41 @@
+#!/usr/bin/expect -f
+
+set timeout 600
+set password {$$R00tbeer02}
+
+# Copy setup script
+spawn scp /tmp/setup_registration_platform.sh root@155.138.197.128:/tmp/setup_registration_platform.sh
+expect {
+    "(yes/no)?" {
+        send "yes\r"
+        exp_continue
+    }
+    "password:" {
+        send "$password\r"
+    }
+}
+expect eof
+
+# Execute setup - modified for Cloudflare SSL
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+# Make script executable
+send "chmod +x /tmp/setup_registration_platform.sh\r"
+expect "# "
+
+# Modify the script to skip Let's Encrypt since we're using Cloudflare
+send "sed -i 's/certbot --apache/#certbot --apache/g' /tmp/setup_registration_platform.sh\r"
+expect "# "
+
+# Run the modified script
+send "/tmp/setup_registration_platform.sh\r"
+expect "# "
+
+send "exit\r"
+expect eof

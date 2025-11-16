@@ -1,0 +1,159 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+
+# Connect to server
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "\$\$R00tbeer02\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "\$\$R00tbeer02\r"
+    }
+}
+
+expect "root@*"
+
+# First, let's check the correct MySQL password
+send "echo '=== Finding correct MySQL credentials ==='\r"
+expect "root@*"
+
+send "grep -E 'password|PASSWORD' /var/www/html/admin/config.php | head -5\r"
+expect "root@*"
+
+send "grep -E 'password|PASSWORD' /var/www/html/config.php 2>/dev/null | head -5\r"
+expect "root@*"
+
+# Check database connection in registration platform
+send "grep 'mysqli' /var/www/html/*.php | grep password | head -2\r"
+expect "root@*"
+
+# Now let's fix the tracking - create a tracking update script
+send "cat > /tmp/fix_juice5_tracking.php << 'ENDPHP'\r"
+send "<?php\r"
+send "// Connect to database\r"
+send "\\\$conn = new mysqli('localhost', 'root', '', 'ctf_platform');\r"
+send "if (\\\$conn->connect_error) {\r"
+send "    // Try without password\r"
+send "    \\\$conn = new mysqli('localhost', 'ctf_user', 'ctfpass123', 'ctf_platform');\r"
+send "    if (\\\$conn->connect_error) {\r"
+send "        die('Connection failed: ' . \\\$conn->connect_error);\r"
+send "    }\r"
+send "}\r"
+send "\r"
+send "echo \"Connected to database\\n\";\r"
+send "\r"
+send "// Check current juice5 assignment\r"
+send "\\\$result = \\\$conn->query(\"SELECT * FROM users WHERE instance_url LIKE '%juice5%'\");\r"
+send "if (\\\$result && \\\$result->num_rows > 0) {\r"
+send "    echo \"Current juice5 assignments:\\n\";\r"
+send "    while(\\\$row = \\\$result->fetch_assoc()) {\r"
+send "        echo \"User: \" . \\\$row['username'] . \" - URL: \" . \\\$row['instance_url'] . \"\\n\";\r"
+send "    }\r"
+send "} else {\r"
+send "    echo \"No juice5 assignments found\\n\";\r"
+send "}\r"
+send "\r"
+send "// Add activity tracking for juice5\r"
+send "\\\$user_id = 5; // wonkastocks user ID\r"
+send "\\\$session_token = md5(uniqid());\r"
+send "\r"
+send "// Insert session record\r"
+send "\\\$sql = \"INSERT INTO user_sessions (user_id, session_token, container_name, container_port, started_at, last_activity, is_active) \";\r"
+send "\\\$sql .= \"VALUES (\\\$user_id, '\\\$session_token', 'juice5', 3005, NOW(), NOW(), 1) \";\r"
+send "\\\$sql .= \"ON DUPLICATE KEY UPDATE last_activity = NOW(), is_active = 1\";\r"
+send "\r"
+send "if (\\\$conn->query(\\\$sql)) {\r"
+send "    echo \"Activity tracking updated for juice5\\n\";\r"
+send "} else {\r"
+send "    echo \"Error updating tracking: \" . \\\$conn->error . \"\\n\";\r"
+send "}\r"
+send "\r"
+send "// Update user's last activity\r"
+send "\\\$sql = \"UPDATE users SET last_activity = NOW() WHERE id = \\\$user_id\";\r"
+send "\\\$conn->query(\\\$sql);\r"
+send "\r"
+send "\\\$conn->close();\r"
+send "?>\r"
+send "ENDPHP\r"
+expect "root@*"
+
+# Run the tracking fix
+send "php /tmp/fix_juice5_tracking.php\r"
+expect "root@*"
+
+# Update the admin dashboard to better track activity
+send "cat > /var/www/html/admin/update_activity.php << 'ENDPHP'\r"
+send "<?php\r"
+send "// Activity tracking endpoint for admin dashboard\r"
+send "header('Content-Type: application/json');\r"
+send "\r"
+send "\\\$conn = new mysqli('localhost', 'root', '', 'ctf_platform');\r"
+send "if (\\\$conn->connect_error) {\r"
+send "    \\\$conn = new mysqli('localhost', 'ctf_user', 'ctfpass123', 'ctf_platform');\r"
+send "}\r"
+send "\r"
+send "// Get active sessions with container info\r"
+send "\\\$sql = \"SELECT u.username, u.email, u.instance_url, s.container_name, s.last_activity, \";\r"
+send "\\\$sql .= \"TIMESTAMPDIFF(MINUTE, s.last_activity, NOW()) as minutes_ago \";\r"
+send "\\\$sql .= \"FROM users u \";\r"
+send "\\\$sql .= \"LEFT JOIN user_sessions s ON u.id = s.user_id AND s.is_active = 1 \";\r"
+send "\\\$sql .= \"WHERE u.instance_url IS NOT NULL \";\r"
+send "\\\$sql .= \"ORDER BY s.last_activity DESC\";\r"
+send "\r"
+send "\\\$result = \\\$conn->query(\\\$sql);\r"
+send "\\\$active_users = [];\r"
+send "\r"
+send "if (\\\$result) {\r"
+send "    while(\\\$row = \\\$result->fetch_assoc()) {\r"
+send "        \\\$active_users[] = \\\$row;\r"
+send "    }\r"
+send "}\r"
+send "\r"
+send "// Get container status from Docker\r"
+send "\\\$containers = [];\r"
+send "\\\$output = shell_exec('docker ps -a --format \"{{.Names}}|{{.Status}}\" | grep juice');\r"
+send "if (\\\$output) {\r"
+send "    \\\$lines = explode(\"\\n\", trim(\\\$output));\r"
+send "    foreach(\\\$lines as \\\$line) {\r"
+send "        \\\$parts = explode('|', \\\$line);\r"
+send "        if (count(\\\$parts) >= 2) {\r"
+send "            \\\$name = trim(\\\$parts[0]);\r"
+send "            \\\$status = strpos(\\\$parts[1], 'Up') !== false ? 'running' : 'stopped';\r"
+send "            \\\$containers[\\\$name] = \\\$status;\r"
+send "        }\r"
+send "    }\r"
+send "}\r"
+send "\r"
+send "echo json_encode([\r"
+send "    'active_users' => \\\$active_users,\r"
+send "    'containers' => \\\$containers,\r"
+send "    'timestamp' => date('Y-m-d H:i:s')\r"
+send "]);\r"
+send "\r"
+send "\\\$conn->close();\r"
+send "?>\r"
+send "ENDPHP\r"
+expect "root@*"
+
+# Set permissions
+send "chown www-data:www-data /var/www/html/admin/update_activity.php\r"
+expect "root@*"
+send "chmod 644 /var/www/html/admin/update_activity.php\r"
+expect "root@*"
+
+# Test the new endpoint
+send "echo '=== Testing activity tracking ==='\r"
+expect "root@*"
+send "curl -s http://localhost/admin/update_activity.php | python3 -m json.tool | head -20\r"
+expect "root@*"
+
+send "echo 'Tracking fixed for juice5!'\r"
+expect "root@*"
+
+send "exit\r"
+expect eof

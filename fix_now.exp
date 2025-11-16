@@ -1,0 +1,29 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "\$M0nk3yBu\$1n3\$\$2024!\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "\$M0nk3yBu\$1n3\$\$2024!\r"
+    }
+}
+
+expect "# "
+send "perl -i -0pe 's/<div class=\"demo-info\">.*?<\\/div>//gs' /var/www/html/login.php\r"
+expect "# "
+send "sed -i '/SQL Injection Demo Lab/d' /var/www/html/login.php\r"
+expect "# "
+send "sed -i '/admin@wallys.com/d' /var/www/html/login.php\r"
+expect "# "
+send "sed -i '/123456/d' /var/www/html/login.php\r"
+expect "# "
+send "systemctl restart apache2\r"
+expect "# "
+send "exit\r"
+expect eof

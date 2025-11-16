@@ -1,0 +1,93 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+puts "🚀 Deploying enhanced container management system..."
+
+# Copy the enhanced containers file
+spawn scp /Users/walterbarr_1/sql-injection-lab/admin/containers_enhanced.php root@155.138.197.128:/tmp/
+expect {
+    "password:" { send "$password\r" }
+}
+expect eof
+
+# Copy the setup script
+spawn scp /Users/walterbarr_1/sql-injection-lab/setup_containers_20.sh root@155.138.197.128:/tmp/
+expect {
+    "password:" { send "$password\r" }
+}
+expect eof
+
+# Now SSH and install
+spawn ssh root@155.138.197.128
+expect {
+    "password:" { send "$password\r" }
+}
+expect "# "
+
+# Backup and install new containers.php
+send "cp /var/www/ctf-platform/admin/containers.php /var/www/ctf-platform/admin/containers_backup.php\r"
+expect "# "
+
+send "cp /tmp/containers_enhanced.php /var/www/ctf-platform/admin/containers.php\r"
+expect "# "
+
+send "chown www-data:www-data /var/www/ctf-platform/admin/containers.php\r"
+expect "# "
+
+send "chmod 644 /var/www/ctf-platform/admin/containers.php\r"
+expect "# "
+
+# Update database to support more containers
+send "mysql -u root ctf_platform << 'EOF'
+-- Clear existing container records
+TRUNCATE TABLE containers;
+
+-- Add containers 1-20
+INSERT INTO containers (container_name, port, status, created_at) VALUES
+('juice-user1', 3001, 'available', NOW()),
+('juice-user2', 3002, 'available', NOW()),
+('juice-user3', 3003, 'available', NOW()),
+('juice-user4', 3004, 'available', NOW()),
+('juice-user5', 3005, 'available', NOW());
+
+-- Show container count
+SELECT COUNT(*) as total_containers FROM containers;
+EOF"
+send "\r"
+expect "# "
+
+# Check Docker status
+send "docker ps -a | grep juice-user | wc -l\r"
+expect "# "
+
+# Give www-data permission to run Docker commands
+send "usermod -aG docker www-data 2>/dev/null || echo 'www-data already in docker group'\r"
+expect "# "
+
+# Create sudoers entry for www-data to run docker commands
+send "echo 'www-data ALL=(ALL) NOPASSWD: /usr/bin/docker' > /etc/sudoers.d/www-data-docker\r"
+expect "# "
+
+send "chmod 440 /etc/sudoers.d/www-data-docker\r"
+expect "# "
+
+# Restart Apache to apply group changes
+send "systemctl restart apache2\r"
+expect "# "
+
+send "echo '✅ Enhanced container management deployed!'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\n✅ Container management system deployed!"
+puts "\n📌 Features:"
+puts "   - Create up to 20 containers"
+puts "   - Delete containers"
+puts "   - Start/Stop containers"
+puts "   - Assign/Release containers"
+puts "   - Visual port selector"
+puts "\nAccess at: https://wonkatech.org/admin/containers.php"

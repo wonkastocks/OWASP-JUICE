@@ -1,0 +1,55 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "echo 'Creating test user with unverified email...'\r"
+expect "# "
+
+# Create test user in correct database
+send "mysql -u root ctf_platform << 'SQLEND'\r"
+send "INSERT INTO users (username, email, password, email_verified, verification_token, container_id)\r"
+send "VALUES ('testuser', 'testuser@wonkatech.org', SHA2('testpass123', 256), 0, 'test_token_123', NULL)\r"
+send "ON DUPLICATE KEY UPDATE email_verified = 0, verification_token = 'test_token_123', password = SHA2('testpass123', 256);\r"
+send "\r"
+send "SELECT username, email, email_verified FROM users WHERE username = 'testuser';\r"
+send "SQLEND\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo 'Test user created successfully!'\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'Username: testuser'\r"
+expect "# "
+send "echo 'Password: testpass123'\r"
+expect "# "
+send "echo 'Email: testuser@wonkatech.org (unverified)'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'You can now:'\r"
+expect "# "
+send "echo '1. Go to https://wonkatech.org and try to login'\r"
+expect "# "
+send "echo '2. You will see the resend verification link'\r"
+expect "# "
+send "echo '3. Click it to test the resend functionality'\r"
+expect "# "
+
+send "exit\r"
+expect eof

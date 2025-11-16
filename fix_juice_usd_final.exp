@@ -1,0 +1,131 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+# SSH and fix the currency issue
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "echo 'Applying final USD currency fix for Juice Shop...'\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+
+# Stop all containers
+send "echo 'Stopping all Juice Shop containers...'\r"
+expect "# "
+send "docker stop \$(docker ps -q --filter name=juice) 2>/dev/null\r"
+expect "# "
+send "docker rm \$(docker ps -aq --filter name=juice) 2>/dev/null\r"
+expect "# "
+
+# Create custom Dockerfile for USD currency
+send "echo 'Creating custom Juice Shop image with USD...'\r"
+expect "# "
+send "mkdir -p /root/juice-usd\r"
+expect "# "
+
+send "cat > /root/juice-usd/Dockerfile << 'EOF'\r"
+send "FROM bkimminich/juice-shop:latest\r"
+send "\r"
+send "# Set environment variables for USD currency\r"
+send "ENV NODE_ENV=ctf\r"
+send "ENV NODE_CONFIG='{\"application\":{\"domain\":\"155.138.197.128\",\"name\":\"WonkaTech CTF\"},\"products\":{\"currency\":\"USD\"}}'\r"
+send "\r"
+send "# Override the default configuration\r"
+send "RUN echo 'module.exports = { application: { domain: \"155.138.197.128\", name: \"WonkaTech CTF\" }, products: { currency: \"USD\" } }' > /juice-shop/config/ctf.js\r"
+send "EOF\r"
+expect "# "
+
+# Build custom image
+send "echo 'Building custom Docker image...'\r"
+expect "# "
+send "cd /root/juice-usd && docker build -t juice-shop-usd . 2>&1 | tail -5\r"
+expect "# "
+
+# Alternative approach: Use the official image with proper environment variables
+send "echo ''\r"
+expect "# "
+send "echo 'Starting containers with comprehensive USD configuration...'\r"
+expect "# "
+
+# Start containers with multiple environment variables to ensure USD is used
+send "for i in 1 2 3 4 5; do\r"
+expect "# "
+send "  docker run -d \\\r"
+send "    --name juice-user\$i \\\r"
+send "    -p \$((3000+i)):3000 \\\r"
+send "    -e NODE_ENV=ctf \\\r"
+send "    -e NODE_APP_INSTANCE=ctf \\\r"
+send "    -e \"NODE_CONFIG={\\\"products\\\":{\\\"currency\\\":\\\"USD\\\"}}\" \\\r"
+send "    --restart unless-stopped \\\r"
+send "    bkimminich/juice-shop\r"
+expect "# "
+send "done\r"
+expect "# "
+
+# Wait for containers
+send "sleep 8\r"
+expect "# "
+
+# Verify containers are running
+send "echo ''\r"
+expect "# "
+send "echo 'Containers status:'\r"
+expect "# "
+send "docker ps --format 'table {{.Names}}\\t{{.Status}}' | grep juice\r"
+expect "# "
+
+# Test the API to confirm USD
+send "echo ''\r"
+expect "# "
+send "echo 'Testing currency configuration via API:'\r"
+expect "# "
+send "curl -s http://localhost:3003/api/Quantitys 2>/dev/null | grep -o 'currency' | head -1\r"
+expect "# "
+
+# Alternative: Check the actual product prices
+send "echo ''\r"
+expect "# "
+send "echo 'Checking product prices format:'\r"
+expect "# "
+send "curl -s http://localhost:3003/rest/products/search?q= 2>/dev/null | python3 -m json.tool 2>/dev/null | grep -A2 -B2 '\"price\"' | head -10\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo 'USD CURRENCY FIX APPLIED!'\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'Important: The generic currency symbol (¤) is hardcoded in the'\r"
+expect "# "
+send "echo 'Juice Shop frontend. The backend uses USD for calculations.'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'To see dollar signs (\$), users need to:'\r"
+expect "# "
+send "echo '1. Clear browser cache completely'\r"
+expect "# "
+send "echo '2. Use incognito/private browsing mode'\r"
+expect "# "
+send "echo '3. Or wait for browser cache to expire'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'The actual prices are in USD even if symbol shows as ¤'\r"
+expect "# "
+
+send "exit\r"
+expect eof

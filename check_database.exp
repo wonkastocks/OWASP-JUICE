@@ -1,0 +1,18 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "mysql -u root -e 'SHOW DATABASES;'\r"
+expect "# "
+
+send "exit\r"
+expect eof

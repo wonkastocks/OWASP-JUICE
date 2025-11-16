@@ -1,0 +1,42 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+# Kill the blocking process and install cloudflared
+send "echo 'Fixing dpkg lock...'\r"
+expect "# "
+
+# Wait for any apt processes to finish
+send "sleep 5\r"
+expect "# "
+
+# Download cloudflared again
+send "curl -L --output /tmp/cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb\r"
+expect "# "
+
+# Force install
+send "dpkg -i /tmp/cloudflared.deb || apt-get install -f -y\r"
+expect "# "
+
+# Clean up
+send "rm /tmp/cloudflared.deb\r"
+expect "# "
+
+# Verify installation
+send "cloudflared version\r"
+expect "# "
+
+send "echo 'Cloudflared installed successfully!'\r"
+expect "# "
+
+send "exit\r"
+expect eof

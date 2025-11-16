@@ -1,0 +1,38 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect "# "
+
+# Login with SQL injection and get session cookie
+send "curl -s -c /tmp/test_cookies.txt -X POST http://localhost/logintest.php -d \"username=admin' -- &password=x\"\r"
+expect "# "
+
+# Check dashboard content with enhanced user info
+send "curl -s -b /tmp/test_cookies.txt http://localhost/dashboard.php | grep -E '(Walter Administrator|123 Admin Street|San Francisco|94105|415)' | head -5\r"
+expect "# "
+
+send "echo 'Checking for address display:'\r"
+expect "# "
+
+send "curl -s -b /tmp/test_cookies.txt http://localhost/dashboard.php | grep -E '(Shipping Address|Street:|City:|State:|ZIP:)' | head -5\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\nDashboard content verified!"

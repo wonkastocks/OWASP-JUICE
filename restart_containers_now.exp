@@ -1,0 +1,65 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "Are you sure you want to continue connecting" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+    timeout {
+        puts "Connection timeout"
+        exit 1
+    }
+}
+
+expect "# "
+
+# Restart all stopped containers
+send "echo '=== Restarting stopped containers juice4-juice13 ==='\r"
+expect "# "
+
+send "for i in {4..13}; do docker start juice\$i 2>&1 && echo \"Started juice\$i\" || echo \"Failed juice\$i\"; sleep 1; done\r"
+expect "# "
+
+# Check container status
+send "echo '=== Current container status ==='\r"
+expect "# "
+
+send "docker ps | grep juice | wc -l\r"
+expect "# "
+
+send "echo '=== Container details ==='\r"
+expect "# "
+
+send "docker ps --format 'table {{.Names}}\t{{.Status}}' | grep juice\r"
+expect "# "
+
+# Update database assignments
+send "echo '=== Updating database assignments ==='\r"
+expect "# "
+
+send "mysql -u root ctf_platform << 'EOF'
+UPDATE containers SET user_id = NULL, allocated = 0;
+UPDATE containers c
+JOIN users u ON u.instance_url = CONCAT('https://juice', c.container_id, '.wonkatech.org')
+SET c.user_id = u.id, c.allocated = 1
+WHERE u.instance_url IS NOT NULL;
+SELECT c.container_id, c.container_name, u.username, c.allocated
+FROM containers c
+LEFT JOIN users u ON c.user_id = u.id
+ORDER BY c.container_id;
+EOF\r"
+expect "# "
+
+send "echo '=== Fix complete ==='\r"
+expect "# "
+
+send "exit\r"
+expect eof

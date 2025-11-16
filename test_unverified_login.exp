@@ -1,0 +1,31 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "cd /var/www/ctf-platform/\r"
+expect "# "
+
+# Check if the login.php has the unverified email check
+send "grep -A 5 'email_verified' login.php\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo 'The login.php already checks for unverified emails and shows resend link only when needed.'\r"
+expect "# "
+send "echo 'When a user with unverified email tries to login, they will see:'\r"
+expect "# "
+send "echo '\"Your email is not verified. Click here to resend verification email\"'\r"
+expect "# "
+
+send "exit\r"
+expect eof

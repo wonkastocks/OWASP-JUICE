@@ -1,0 +1,40 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect "# "
+
+# Check what's in the current login.php
+send "grep -A2 'Sign in to' /var/www/html/login.php\r"
+expect "# "
+
+send "echo '---'\r"
+expect "# "
+
+# Check if it has the order redirect
+send "grep 'Location: order.php' /var/www/html/login.php\r"
+expect "# "
+
+send "echo '---'\r"
+expect "# "
+
+# Check the title
+send "head -5 /var/www/html/login.php | grep -o 'error_reporting'\r"
+expect "# "
+
+send "exit\r"
+expect eof

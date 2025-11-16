@@ -1,0 +1,62 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect "# "
+
+send "echo '=== Testing Full Login Flow ==='\r"
+expect "# "
+
+# Test regular admin login and check if redirected
+send "curl -s -L -c /tmp/cookies.txt -X POST http://localhost/logintest.php -d \"username=admin&password=admin123\" | grep -o 'Welcome.*admin\\|Dashboard'\r"
+expect "# "
+
+# Check if we can access dashboard with session
+send "curl -s -b /tmp/cookies.txt http://localhost/dashboard.php | grep -o 'Welcome back\\|Account Information'\r"
+expect "# "
+
+send "echo ''\r"
+send "echo '=== Testing SQL Injection Login ==='\r"
+expect "# "
+
+# Test SQL injection and see if it logs in
+send "curl -s -L -c /tmp/cookies2.txt -X POST http://localhost/logintest.php -d \"username=admin' -- &password=x\" | grep -o 'Welcome.*admin\\|Dashboard'\r"
+expect "# "
+
+# Check dashboard access after SQL injection
+send "curl -s -b /tmp/cookies2.txt http://localhost/dashboard.php | grep -o 'Welcome back\\|ADMIN'\r"
+expect "# "
+
+send "echo ''\r"
+send "echo '=== Testing Regular User Login ==='\r"
+expect "# "
+
+# Test regular user login
+send "curl -s -L -c /tmp/cookies3.txt -X POST http://localhost/logintest.php -d \"username=john_doe&password=john123\" | grep -o 'Welcome.*john\\|Dashboard'\r"
+expect "# "
+
+send "curl -s -b /tmp/cookies3.txt http://localhost/dashboard.php | grep -o 'Welcome back\\|Customer'\r"
+expect "# "
+
+send "echo ''\r"
+send "echo 'All tests complete!'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\nFull flow testing complete!"

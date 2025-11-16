@@ -1,0 +1,56 @@
+#!/usr/bin/expect -f
+
+set timeout 60
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+# Create 5 separate Juice Shop instances on different ports
+send "echo 'Creating multiple Juice Shop instances...'\r"
+expect "# "
+
+# Instance 1 - Port 3001
+send "docker run -d --name juice-user1 -p 3001:3000 bkimminich/juice-shop:latest\r"
+expect "# "
+
+# Instance 2 - Port 3002
+send "docker run -d --name juice-user2 -p 3002:3000 bkimminich/juice-shop:latest\r"
+expect "# "
+
+# Instance 3 - Port 3003
+send "docker run -d --name juice-user3 -p 3003:3000 bkimminich/juice-shop:latest\r"
+expect "# "
+
+# Instance 4 - Port 3004
+send "docker run -d --name juice-user4 -p 3004:3000 bkimminich/juice-shop:latest\r"
+expect "# "
+
+# Instance 5 - Port 3005
+send "docker run -d --name juice-user5 -p 3005:3000 bkimminich/juice-shop:latest\r"
+expect "# "
+
+send "echo 'Waiting for instances to start...'\r"
+expect "# "
+send "sleep 10\r"
+expect "# "
+
+# Check all running containers
+send "docker ps --format 'table {{.Names}}\t{{.Ports}}\t{{.Status}}'\r"
+expect "# "
+
+# Test each instance
+send "echo ''\r"
+expect "# "
+send "echo 'Testing instances:'\r"
+expect "# "
+send "for port in 3000 3001 3002 3003 3004 3005; do echo -n \"Port \$port: \"; curl -s -o /dev/null -w \"%{http_code}\" http://localhost:\$port && echo \" ✓\" || echo \" ✗\"; done\r"
+expect "# "
+
+send "exit\r"
+expect eof

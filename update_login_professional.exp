@@ -1,0 +1,227 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect "# "
+
+# First, backup the current file
+send "cp /var/www/html/login.php /var/www/html/login.php.backup_header\r"
+expect "# "
+
+# Remove the Login Demo and SQL Injection Educational Lab text
+send "sed -i 's/<h1>🐵 Login Demo<\\/h1>/<h1>Login<\\/h1>/g' /var/www/html/login.php\r"
+expect "# "
+
+send "sed -i '/<p>SQL Injection Educational Lab<\\/p>/d' /var/www/html/login.php\r"
+expect "# "
+
+# Add a professional header and footer using Python
+send "cat > /tmp/update_login.py << 'EOF'
+import re
+
+with open('/var/www/html/login.php', 'r') as f:
+    content = f.read()
+
+# Update the login header to be more professional
+content = re.sub(r'<div class=\"login-header\">.*?</div>', 
+    '''<div class=\"login-header\">
+            <div class=\"logo\">
+                <img src=\"/assets/images/logo.png\" alt=\"Wally's Monkey Parts\" style=\"height: 60px;\" onerror=\"this.style.display='none'\">
+            </div>
+            <h1>Welcome Back</h1>
+            <p>Sign in to your account</p>
+        </div>''', content, flags=re.DOTALL)
+
+# Add header if not present
+if '<!-- Professional Header -->' not in content:
+    header = '''<!-- Professional Header -->
+    <header class=\"site-header\">
+        <div class=\"header-container\">
+            <div class=\"header-logo\">
+                <a href=\"/\">Wally's Monkey Parts</a>
+            </div>
+            <nav class=\"header-nav\">
+                <a href=\"/\">Home</a>
+                <a href=\"/products\">Products</a>
+                <a href=\"/about\">About</a>
+                <a href=\"/contact\">Contact</a>
+            </nav>
+        </div>
+    </header>
+    '''
+    # Insert after body tag
+    content = content.replace('<body>', '<body>\\n' + header)
+
+# Add footer if not present  
+if '<!-- Professional Footer -->' not in content:
+    footer = '''<!-- Professional Footer -->
+    <footer class=\"site-footer\">
+        <div class=\"footer-container\">
+            <div class=\"footer-content\">
+                <div class=\"footer-section\">
+                    <h3>Wally's Monkey Parts</h3>
+                    <p>Your trusted source for quality hardware since 2020</p>
+                </div>
+                <div class=\"footer-section\">
+                    <h4>Quick Links</h4>
+                    <a href=\"/privacy\">Privacy Policy</a>
+                    <a href=\"/terms\">Terms of Service</a>
+                    <a href=\"/support\">Support</a>
+                </div>
+                <div class=\"footer-section\">
+                    <h4>Contact</h4>
+                    <p>Email: support@wallysmonkeyparts.com</p>
+                    <p>Phone: 1-800-MONKEY-1</p>
+                </div>
+            </div>
+            <div class=\"footer-bottom\">
+                <p>&copy; 2025 Wally's Monkey Parts. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>'''
+    # Insert before closing body tag
+    content = content.replace('</body>', footer + '\\n</body>')
+
+# Add CSS for header and footer if not present
+if '.site-header' not in content:
+    header_footer_css = '''
+        /* Header Styles */
+        .site-header {
+            background: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+        }
+        
+        .header-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header-logo a {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #ff7043;
+            text-decoration: none;
+        }
+        
+        .header-nav a {
+            margin-left: 2rem;
+            color: #333;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .header-nav a:hover {
+            color: #ff7043;
+        }
+        
+        /* Footer Styles */
+        .site-footer {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 3rem 0 1rem;
+            margin-top: auto;
+        }
+        
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+        
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .footer-section h3, .footer-section h4 {
+            margin-bottom: 1rem;
+        }
+        
+        .footer-section a {
+            color: #ecf0f1;
+            text-decoration: none;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+        
+        .footer-section a:hover {
+            color: #ff7043;
+        }
+        
+        .footer-bottom {
+            text-align: center;
+            padding-top: 2rem;
+            border-top: 1px solid #34495e;
+        }
+        
+        /* Adjust login container for fixed header */
+        .login-container {
+            margin-top: 100px;
+        }
+        
+        /* Update login header */
+        .login-header h1 {
+            color: #2c3e50;
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .login-header p {
+            color: #7f8c8d;
+            font-size: 1rem;
+        }
+    '''
+    # Insert CSS before </style>
+    content = content.replace('</style>', header_footer_css + '\\n    </style>')
+
+with open('/var/www/html/login.php', 'w') as f:
+    f.write(content)
+
+print('Login page updated successfully!')
+EOF\r"
+expect "# "
+
+# Run the Python script
+send "python3 /tmp/update_login.py\r"
+expect "# "
+
+# Set permissions
+send "chown www-data:www-data /var/www/html/login.php\r"
+expect "# "
+
+# Restart Apache
+send "systemctl restart apache2\r"
+expect "# "
+
+send "echo 'Login page updated with professional header and footer!'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\nLogin page professionally updated!"

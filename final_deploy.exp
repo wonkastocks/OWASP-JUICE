@@ -1,0 +1,63 @@
+#!/usr/bin/expect -f
+set timeout 600
+
+# Password with dollar sign
+set pass {\$Hg5sD&8Lp@9}
+
+puts "========================================="
+puts "FINAL DEPLOYMENT ATTEMPT"
+puts "========================================="
+
+# First, let's copy the restore script we already have
+puts "\nStep 1: Copying restore script..."
+spawn scp /Users/walterbarr_1/sql-injection-lab/restore_all_services.sh root@155.138.197.128:/tmp/
+expect {
+    "yes/no" {
+        send "yes\r"
+        exp_continue
+    }
+    "password:" {
+        send "$pass\r"
+        expect eof
+    }
+    timeout {
+        puts "Timeout on copy"
+        exit 1
+    }
+}
+
+puts "\nStep 2: Executing restore script..."
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$pass\r"
+        expect "root@*" {
+            send "bash /tmp/restore_all_services.sh\r"
+            expect {
+                "ACCESS URLS" {
+                    puts "\n✅ Installation successful!"
+                    expect "root@*"
+                    send "exit\r"
+                }
+                timeout {
+                    puts "\nScript still running..."
+                    send "\r"
+                    expect "root@*"
+                    send "exit\r"
+                }
+            }
+        }
+    }
+    timeout {
+        puts "Timeout on SSH"
+        exit 1
+    }
+}
+
+puts "\n========================================="
+puts "✅ DEPLOYMENT COMPLETE!"
+puts "========================================="
+puts "\nYour services should be available at:"
+puts "  http://155.138.197.128 - CTF Platform"
+puts "  http://155.138.197.128:4000 - Juice Shop (XSS works!)"
+puts "  https://juice3.wonkatech.org - Juice Shop Docker"

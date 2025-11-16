@@ -1,0 +1,70 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+
+# Connect to server
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "\$\$R00tbeer02\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "\$\$R00tbeer02\r"
+    }
+}
+
+expect "root@*"
+
+# Check if functions.php has the CSRF functions
+send "grep -c 'generateCSRFToken\\|verifyCSRFToken' /var/www/html/admin/functions.php\r"
+expect "root@*"
+
+# Add the CSRF functions to functions.php if they're missing
+send "cat >> /var/www/html/admin/functions.php << 'ENDPHP'\r"
+send "\r"
+send "// CSRF Token Management Functions\r"
+send "function generateCSRFToken() {\r"
+send "    if (!isset(\\\$_SESSION)) {\r"
+send "        session_start();\r"
+send "    }\r"
+send "    if (empty(\\\$_SESSION['csrf_token'])) {\r"
+send "        \\\$_SESSION['csrf_token'] = bin2hex(random_bytes(32));\r"
+send "    }\r"
+send "    return \\\$_SESSION['csrf_token'];\r"
+send "}\r"
+send "\r"
+send "function verifyCSRFToken(\\\$token) {\r"
+send "    if (!isset(\\\$_SESSION)) {\r"
+send "        session_start();\r"
+send "    }\r"
+send "    if (empty(\\\$token) || empty(\\\$_SESSION['csrf_token'])) {\r"
+send "        die('CSRF token validation failed');\r"
+send "    }\r"
+send "    if (!hash_equals(\\\$_SESSION['csrf_token'], \\\$token)) {\r"
+send "        die('CSRF token validation failed');\r"
+send "    }\r"
+send "    return true;\r"
+send "}\r"
+send "ENDPHP\r"
+expect "root@*"
+
+# Verify session is started at the beginning of admin_login.php
+send "head -5 /var/www/html/admin/admin_login.php | grep session_start\r"
+expect "root@*"
+
+# If session_start is missing, add it
+send "sed -i '1s/^/<?php session_start(); ?>\\n/' /var/www/html/admin/admin_login.php 2>/dev/null\r"
+expect "root@*"
+
+# Clear PHP opcache and restart Apache
+send "systemctl restart apache2\r"
+expect "root@*"
+
+send "echo 'CSRF functions added successfully. Admin login should work now.'\r"
+expect "root@*"
+
+send "exit\r"
+expect eof

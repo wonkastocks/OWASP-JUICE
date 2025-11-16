@@ -1,0 +1,76 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "cd /var/www/ctf-platform/\r"
+expect "# "
+
+# Directly modify register.php using sed to add email functionality
+send "cp register.php register.php.backup2\r"
+expect "# "
+
+# Find the line number with the success message
+send "grep -n 'Registration successful! Please check' register.php | cut -d: -f1\r"
+expect -re {(\d+)} {
+    set line_num $expect_out(1,string)
+}
+expect "# "
+
+# Add email sending code after the success message line
+send "sed -i '${line_num}a\\                    // Send verification email' register.php\r"
+expect "# "
+send "sed -i '\$((\${line_num}+1))a\\                    \\$to = \\$email;' register.php\r"
+expect "# "
+send "sed -i '\$((\${line_num}+2))a\\                    \\$subject = \"WonkaTech CTF - Email Verification\";' register.php\r"
+expect "# "
+send "sed -i '\$((\${line_num}+3))a\\                    \\$verificationLink = BASE_URL . \"/verify.php?token=\" . \\$verificationToken;' register.php\r"
+expect "# "
+send "sed -i '\$((\${line_num}+4))a\\                    \\$message = \"Hello \" . \\$username . \",\\\\n\\\\n\";' register.php\r"
+expect "# "
+send "sed -i '\$((\${line_num}+5))a\\                    \\$message .= \"Welcome to WonkaTech CTF!\\\\n\\\\n\";' register.php\r"
+expect "# "
+send "sed -i '\$((\${line_num}+6))a\\                    \\$message .= \"Click here to verify: \\\\n\" . \\$verificationLink;' register.php\r"
+expect "# "
+send "sed -i '\$((\${line_num}+7))a\\                    \\$headers = \"From: noreply@wonkatech.org\";' register.php\r"
+expect "# "
+send "sed -i '\$((\${line_num}+8))a\\                    @mail(\\$to, \\$subject, \\$message, \\$headers);' register.php\r"
+expect "# "
+
+# Restart Apache
+send "systemctl restart apache2\r"
+expect "# "
+
+# Test email functionality by creating a test user
+send "echo 'Testing email system...'\r"
+expect "# "
+
+# Send a test email
+send "echo 'Test from WonkaTech CTF' | mail -s 'Test Email' root@localhost\r"
+expect "# "
+
+# Check mail logs
+send "tail -5 /var/log/mail.log 2>/dev/null || tail -5 /var/log/syslog | grep sendmail\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo 'Email system configured!'\r"
+expect "# "
+send "echo 'Sendmail is running and register.php now sends verification emails.'\r"
+expect "# "
+send "echo ''\r"
+expect "# "
+send "echo 'To test: Register a new user and check the email logs.'\r"
+expect "# "
+
+send "exit\r"
+expect eof

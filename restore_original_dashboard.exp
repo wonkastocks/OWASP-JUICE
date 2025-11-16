@@ -1,0 +1,62 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set password {$$R00tbeer02}
+
+# First SCP the enhanced dashboard (original style with user details)
+spawn scp /Users/walterbarr_1/sql-injection-lab/dashboard_enhanced.php root@155.138.197.128:/tmp/dashboard.php
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect eof
+
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "$password\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "$password\r"
+    }
+}
+
+expect "# "
+
+send "echo 'Restoring original-style dashboard with user details...'\r"
+expect "# "
+
+# Deploy the original-style dashboard with enhanced user info
+send "cp /tmp/dashboard.php /var/www/html/dashboard.php\r"
+expect "# "
+
+send "chown www-data:www-data /var/www/html/dashboard.php\r"
+expect "# "
+
+send "chmod 644 /var/www/html/dashboard.php\r"
+expect "# "
+
+send "systemctl restart apache2\r"
+expect "# "
+
+send "systemctl restart php8.1-fpm\r"
+expect "# "
+
+send "echo 'Original dashboard style restored with user details!'\r"
+expect "# "
+
+send "exit\r"
+expect eof
+
+puts "\nOriginal dashboard restored!"

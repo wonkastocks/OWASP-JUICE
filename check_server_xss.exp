@@ -1,0 +1,13 @@
+#!/usr/bin/expect -f
+set timeout 30
+set password {\$Hg5sD&8Lp@9}
+
+spawn scp /Users/walterbarr_1/sql-injection-lab/challenges/solutions/check_xss_blocking.sh root@155.138.197.128:/tmp/
+expect "password:"
+send "$password\r"
+expect eof
+
+spawn ssh root@155.138.197.128 bash /tmp/check_xss_blocking.sh
+expect "password:"
+send "$password\r"
+interact

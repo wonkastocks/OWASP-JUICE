@@ -1,0 +1,49 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+# Copy the viewer script
+spawn scp /tmp/view_emails.php root@155.138.197.128:/usr/local/bin/
+expect {
+    "password:" {
+        send "$password\r"
+        expect "100%"
+    }
+}
+
+# SSH and run it
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "chmod +x /usr/local/bin/view_emails.php\r"
+expect "# "
+
+send "echo '================================================'\r"
+expect "# "
+send "echo 'CURRENT EMAIL SYSTEM STATUS'\r"
+expect "# "
+send "echo '================================================'\r"
+expect "# "
+
+# Show mail queue
+send "echo ''\r"
+expect "# "
+send "echo 'Emails stuck in queue (cannot reach Gmail):'\r"
+expect "# "
+send "mailq | head -15\r"
+expect "# "
+
+# Run the viewer
+send "echo ''\r"
+expect "# "
+send "/usr/local/bin/view_emails.php\r"
+expect "# "
+
+send "exit\r"
+expect eof

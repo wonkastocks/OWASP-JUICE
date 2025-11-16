@@ -1,0 +1,101 @@
+#!/usr/bin/expect -f
+
+set timeout 60
+
+# Connect to server
+spawn ssh root@155.138.197.128
+
+expect {
+    "password:" {
+        send "\$\$R00tbeer02\r"
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "\$\$R00tbeer02\r"
+    }
+}
+
+expect "root@*"
+
+# Stop and remove all existing juice containers
+send "for i in {1..10}; do docker stop juice\$i 2>/dev/null; docker rm juice\$i 2>/dev/null; done\r"
+expect "root@*"
+
+# Create all 10 containers
+send "echo 'Creating containers for juice1-10...'\r"
+expect "root@*"
+
+for {set i 1} {$i <= 10} {incr i} {
+    set port [expr 3000 + $i]
+    send "docker run -d --name juice$i -p $port:3000 --restart unless-stopped bkimminich/juice-shop:latest\r"
+    expect "root@*"
+    send "echo 'Created juice$i on port $port'\r"
+    expect "root@*"
+}
+
+# Verify all containers are running
+send "docker ps --format 'table {{.Names}}\t{{.Ports}}\t{{.Status}}' | grep juice\r"
+expect "root@*"
+
+# Create a container management script for the PHP registration
+send "cat > /var/www/html/container_manager.php << 'EOF'\r"
+send "<?php\r"
+send "function assignContainer(\$username) {\r"
+send "    // Get next available container number (1-10)\r"
+send "    \$used = array();\r"
+send "    \$conn = new mysqli('localhost', 'ctf_user', 'Ctf_Pass123!', 'ctf_db');\r"
+send "    \$result = \$conn->query('SELECT instance_url FROM users WHERE instance_url IS NOT NULL');\r"
+send "    while(\$row = \$result->fetch_assoc()) {\r"
+send "        if(preg_match('/juice(\d+)/', \$row['instance_url'], \$matches)) {\r"
+send "            \$used[] = \$matches[1];\r"
+send "        }\r"
+send "    }\r"
+send "    \r"
+send "    for(\$i = 1; \$i <= 10; \$i++) {\r"
+send "        if(!in_array(\$i, \$used)) {\r"
+send "            \$container_num = \$i;\r"
+send "            \$port = 3000 + \$i;\r"
+send "            \r"
+send "            // Ensure container is running\r"
+send "            exec('docker ps | grep juice'.\$i, \$output, \$return);\r"
+send "            if(\$return != 0) {\r"
+send "                // Container not running, start it\r"
+send "                exec('docker run -d --name juice'.\$i.' -p '.\$port.':3000 --restart unless-stopped bkimminich/juice-shop:latest 2>&1');\r"
+send "                sleep(3); // Wait for container to start\r"
+send "            }\r"
+send "            \r"
+send "            return 'https://juice'.\$i.'.wonkatech.org';\r"
+send "        }\r"
+send "    }\r"
+send "    return null; // All containers in use\r"
+send "}\r"
+send "?>\r"
+send "EOF\r"
+expect "root@*"
+
+# Update the register.php to use container manager
+send "sed -i '/instance_url = /d' /var/www/html/register.php\r"
+expect "root@*"
+
+send "cat >> /var/www/html/register_patch.php << 'EOF'\r"
+send "<?php\r"
+send "// Add this to register.php after user is created\r"
+send "require_once 'container_manager.php';\r"
+send "\$instance_url = assignContainer(\$username);\r"
+send "if(\$instance_url) {\r"
+send "    \$update_sql = \"UPDATE users SET instance_url = ? WHERE username = ?\";\r"
+send "    \$update_stmt = \$conn->prepare(\$update_sql);\r"
+send "    \$update_stmt->bind_param(\"ss\", \$instance_url, \$username);\r"
+send "    \$update_stmt->execute();\r"
+send "}\r"
+send "?>\r"
+send "EOF\r"
+expect "root@*"
+
+# Test container access
+send "for i in {1..10}; do echo -n \"juice\$i: \"; curl -s -o /dev/null -w \"%{http_code}\" http://localhost:300\$i; echo; done\r"
+expect "root@*"
+
+send "exit\r"
+expect eof

@@ -1,0 +1,21 @@
+# Deployment Commands for Clean Login Page
+
+# Step 1: Copy the file to server (run this command)
+scp /Users/walterbarr_1/sql-injection-lab/clean_login.php root@155.138.197.128:/root/clean_login.php
+# When prompted for password, enter: $R00tbeer02
+
+# Step 2: SSH into server and deploy (run this command)
+ssh root@155.138.197.128
+# When prompted for password, enter: $R00tbeer02
+
+# Once logged into the server, run these commands:
+cp /var/www/html/login.php /var/www/html/login.php.backup.$(date +%Y%m%d_%H%M%S)
+mv /root/clean_login.php /var/www/html/login.php
+chown www-data:www-data /var/www/html/login.php
+chmod 644 /var/www/html/login.php
+systemctl restart apache2
+systemctl status apache2 --no-pager | head -5
+exit
+
+# Alternative single-line approach:
+# scp /Users/walterbarr_1/sql-injection-lab/clean_login.php root@155.138.197.128:/root/clean_login.php && ssh root@155.138.197.128 "cp /var/www/html/login.php /var/www/html/login.php.backup.\$(date +%Y%m%d_%H%M%S) && mv /root/clean_login.php /var/www/html/login.php && chown www-data:www-data /var/www/html/login.php && chmod 644 /var/www/html/login.php && systemctl restart apache2"

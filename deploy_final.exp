@@ -1,0 +1,96 @@
+#!/usr/bin/expect -f
+
+set timeout 60
+log_user 1
+
+puts "Starting deployment of clean_login.php..."
+
+puts "Step 1: Copying file to server..."
+spawn scp /Users/walterbarr_1/sql-injection-lab/clean_login.php root@155.138.197.128:/root/clean_login.php
+
+expect {
+    timeout {
+        puts "SCP timeout occurred"
+        exit 1
+    }
+    "(yes/no)" {
+        send "yes\r"
+        exp_continue
+    }
+    "Password:" -
+    "password:" {
+        send {$R00tbeer02}
+        send "\r"
+    }
+}
+
+expect {
+    timeout {
+        puts "SCP completion timeout"
+        exit 1
+    }
+    eof {
+        puts "SCP completed successfully"
+    }
+}
+
+puts "Step 2: SSH to server and deploy..."
+spawn ssh root@155.138.197.128
+
+expect {
+    timeout {
+        puts "SSH connection timeout"
+        exit 1
+    }
+    "(yes/no)" {
+        send "yes\r"
+        exp_continue
+    }
+    "Password:" -
+    "password:" {
+        send {$R00tbeer02}
+        send "\r"
+    }
+}
+
+expect {
+    timeout {
+        puts "SSH login timeout"
+        exit 1
+    }
+    "# " -
+    "$ " -
+    "> " {
+        puts "Successfully logged in"
+    }
+}
+
+puts "Creating backup..."
+send "cp /var/www/html/login.php /var/www/html/login.php.backup.\$(date +%Y%m%d_%H%M%S)\r"
+expect "# "
+
+puts "Moving new file to web directory..."
+send "mv /root/clean_login.php /var/www/html/login.php\r"
+expect "# "
+
+puts "Setting ownership..."
+send "chown www-data:www-data /var/www/html/login.php\r"
+expect "# "
+
+puts "Setting permissions..."
+send "chmod 644 /var/www/html/login.php\r"
+expect "# "
+
+puts "Restarting Apache..."
+send "systemctl restart apache2\r"
+expect "# "
+
+puts "Checking Apache status..."
+send "systemctl status apache2 --no-pager | head -5\r"
+expect "# "
+
+puts "Deployment complete!"
+send "exit\r"
+expect eof
+
+puts "All done!"

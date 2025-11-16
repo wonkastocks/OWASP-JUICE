@@ -1,0 +1,32 @@
+#!/usr/bin/expect -f
+set timeout 60
+
+# Copy fix script
+spawn scp /Users/walterbarr_1/sql-injection-lab/fix_bad_gateway.sh root@155.138.197.128:/tmp/
+expect {
+    "password:" {
+        send "\\\$Hg5sD&8Lp@9\r"
+        expect eof
+    }
+    "yes/no" {
+        send "yes\r"
+        expect "password:"
+        send "\\\$Hg5sD&8Lp@9\r"
+        expect eof
+    }
+    timeout {
+        puts "Timeout on SCP"
+    }
+}
+
+# Execute fix
+spawn ssh root@155.138.197.128 "bash /tmp/fix_bad_gateway.sh"
+expect {
+    "password:" {
+        send "\\\$Hg5sD&8Lp@9\r"
+        interact
+    }
+    timeout {
+        puts "Timeout on SSH"
+    }
+}

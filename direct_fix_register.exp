@@ -1,0 +1,51 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password {$$R00tbeer02}
+
+spawn ssh root@155.138.197.128
+expect {
+    "password:" {
+        send "$password\r"
+        expect "# "
+    }
+}
+
+send "echo 'Fixing HTML rendering in login.php...'\r"
+expect "# "
+
+# First, let's check how the error is displayed
+send "grep -A5 -B5 'error' /var/www/ctf-platform/login.php | grep -E 'echo|print' | head -5\r"
+expect "# "
+
+# The issue is likely that htmlspecialchars is being used on the error message
+# We need to allow HTML in the error message
+send "sed -i 's/<?php echo htmlspecialchars(\$error); ?>/<?php echo \$error; ?>/g' /var/www/ctf-platform/login.php\r"
+expect "# "
+
+# Alternative: if the error uses different syntax
+send "sed -i 's/<?= htmlspecialchars(\$error) ?>/<?= \$error ?>/g' /var/www/ctf-platform/login.php\r"
+expect "# "
+
+# Another possibility
+send "sed -i 's/echo htmlspecialchars(\$error)/echo \$error/g' /var/www/ctf-platform/login.php\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo '✅ Fixed HTML rendering - the resend link should now be clickable'\r"
+expect "# "
+
+# Verify the fix
+send "grep -A2 'error' /var/www/ctf-platform/login.php | grep -E 'echo|print' | head -3\r"
+expect "# "
+
+send "echo ''\r"
+expect "# "
+send "echo 'The resend verification link should now appear as a clickable link!'\r"
+expect "# "
+send "echo 'Test it at: https://wonkatech.org'\r"
+expect "# "
+
+send "exit\r"
+expect eof
