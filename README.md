@@ -119,20 +119,27 @@ Authorized environments only:
 
 Never use on production systems or without explicit permission.
 
-## 📁 Repository Contents
+## 📁 Repository Structure
 
 ```
-Journalwebapp/
-├── challenges/          # Challenge files & writeups
-├── Challenge-Scripts/   # Organized solver scripts
-├── admin/              # Admin panel exploitation
-├── GET_ADMIN/          # Admin access techniques
-├── juice_shop_writeups/ # Detailed writeups
-├── *.py                # Python solvers
-├── *.sh                # Shell scripts
-├── *.exp               # Expect automation
-├── *.md                # Documentation
-└── README.md           # This file
+OWASP-JUICE/
+├── docs/                         # Documentation
+│   └── OWASP_JUICE_SHOP_README.md
+├── guides/                       # Learning guides
+│   ├── COMPREHENSIVE_STUDY_GUIDE.md
+│   └── ATTACK_METHODOLOGY_GUIDE.md
+├── solvers/                      # Automated solvers
+│   ├── complete_juice_shop_solver.py
+│   └── comprehensive_writeup_generator.py
+├── challenge_writeups/           # Individual challenge writeups (79+)
+│   ├── Broken_Access_Control/
+│   ├── Broken_Authentication/
+│   ├── Injection/
+│   ├── XSS_Cross-Site_Scripting/
+│   └── ... (14 categories total)
+├── challenges/                   # Legacy challenge files
+├── Challenge-Scripts/            # Legacy solver scripts
+└── README.md                     # This file
 ```
 
 ## 🏆 Progress Tracking
