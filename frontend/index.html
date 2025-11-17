@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NMAP Optimizer - AI-Powered Network Scanner</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div class="header-content">
+                <h1>🛡️ NMAP OPTIMIZER</h1>
+                <p class="subtitle">AI-Powered Network Security Scanner</p>
+                <div class="warning-banner">
+                    ⚠️ AUTHORIZED USE ONLY - For Security Testing & Auditing Purposes
+                </div>
+            </div>
+            <div class="health-status" id="healthStatus">
+                <span class="status-dot"></span>
+                <span class="status-text">Checking...</span>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <nav>
+                    <button class="nav-btn active" data-section="scanner">
+                        <span class="icon">🔍</span> Scanner
+                    </button>
+                    <button class="nav-btn" data-section="assets">
+                        <span class="icon">🖥️</span> Assets
+                    </button>
+                    <button class="nav-btn" data-section="scans">
+                        <span class="icon">📊</span> Scan History
+                    </button>
+                    <button class="nav-btn" data-section="fingerprint">
+                        <span class="icon">🔬</span> Fingerprinting
+                    </button>
+                    <button class="nav-btn" data-section="stats">
+                        <span class="icon">📈</span> Statistics
+                    </button>
+                </nav>
+
+                <div class="sidebar-footer">
+                    <p class="version">v1.0.0</p>
+                    <p class="author">wonkastocks</p>
+                </div>
+            </aside>
+
+            <!-- Content Area -->
+            <main class="content">
+                <!-- Scanner Section -->
+                <section id="scanner-section" class="section active">
+                    <h2>AI-Powered Scanner</h2>
+                    <p class="section-description">
+                        Describe what you want to scan in natural language. The AI will interpret your request and execute the appropriate NMAP scan.
+                    </p>
+
+                    <div class="scanner-card">
+                        <div class="form-group">
+                            <label for="target">Target (IP or Hostname)</label>
+                            <input
+                                type="text"
+                                id="target"
+                                placeholder="192.168.1.1 or example.com"
+                                class="input-field"
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="scanRequest">Scan Request (Natural Language)</label>
+                            <textarea
+                                id="scanRequest"
+                                rows="4"
+                                placeholder="Examples:&#10;- Do a quick scan looking for web servers&#10;- Comprehensive scan with OS detection and service enumeration&#10;- Stealthy scan to avoid IDS detection&#10;- Check for vulnerabilities on web ports"
+                                class="input-field"
+                            ></textarea>
+                        </div>
+
+                        <div class="quick-templates">
+                            <p class="templates-label">Quick Templates:</p>
+                            <div class="template-buttons">
+                                <button class="template-btn" data-template="quick">Quick Scan</button>
+                                <button class="template-btn" data-template="full">Full Scan</button>
+                                <button class="template-btn" data-template="stealth">Stealth Scan</button>
+                                <button class="template-btn" data-template="webapp">Web App Scan</button>
+                                <button class="template-btn" data-template="vuln">Vuln Scan</button>
+                            </div>
+                        </div>
+
+                        <button id="startScanBtn" class="btn btn-primary btn-large">
+                            🚀 Start Scan
+                        </button>
+
+                        <div id="scanProgress" class="scan-progress hidden">
+                            <div class="progress-header">
+                                <span class="progress-text">Scan in progress...</span>
+                                <span class="progress-spinner">⚙️</span>
+                            </div>
+                            <div class="scan-details" id="scanDetails"></div>
+                        </div>
+
+                        <div id="scanResults" class="scan-results hidden">
+                            <h3>Scan Results</h3>
+                            <div id="resultsContent"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Assets Section -->
+                <section id="assets-section" class="section">
+                    <h2>Discovered Assets</h2>
+                    <p class="section-description">All discovered hosts and their current status</p>
+
+                    <div id="assetsList" class="assets-grid">
+                        <!-- Assets will be loaded here -->
+                    </div>
+                </section>
+
+                <!-- Scan History Section -->
+                <section id="scans-section" class="section">
+                    <h2>Scan History</h2>
+                    <p class="section-description">View all completed and ongoing scans</p>
+
+                    <div id="scanHistory" class="scan-history">
+                        <!-- Scan history will be loaded here -->
+                    </div>
+                </section>
+
+                <!-- Fingerprinting Section -->
+                <section id="fingerprint-section" class="section">
+                    <h2>Manual Fingerprinting</h2>
+                    <p class="section-description">Perform specific reconnaissance tasks</p>
+
+                    <div class="fingerprint-tools">
+                        <div class="tool-card">
+                            <h3>🌐 DNS Enumeration</h3>
+                            <input type="text" id="dnsTarget" placeholder="example.com" class="input-field">
+                            <button id="dnsBtn" class="btn btn-secondary">Enumerate DNS</button>
+                            <div id="dnsResults" class="tool-results"></div>
+                        </div>
+
+                        <div class="tool-card">
+                            <h3>📋 Banner Grabbing</h3>
+                            <input type="text" id="bannerTarget" placeholder="192.168.1.1" class="input-field">
+                            <input type="number" id="bannerPort" placeholder="Port (e.g., 80)" class="input-field">
+                            <button id="bannerBtn" class="btn btn-secondary">Grab Banner</button>
+                            <div id="bannerResults" class="tool-results"></div>
+                        </div>
+
+                        <div class="tool-card">
+                            <h3>🖥️ OS Fingerprinting</h3>
+                            <input type="text" id="osTarget" placeholder="192.168.1.1" class="input-field">
+                            <button id="osBtn" class="btn btn-secondary">Detect OS</button>
+                            <div id="osResults" class="tool-results"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Statistics Section -->
+                <section id="stats-section" class="section">
+                    <h2>Dashboard Statistics</h2>
+                    <div id="statsContent" class="stats-grid">
+                        <!-- Stats will be loaded here -->
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- Asset Detail Modal -->
+    <div id="assetModal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <div id="assetDetails">
+                <!-- Asset details will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

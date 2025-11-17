@@ -1,0 +1,96 @@
+# NMAP Optimizer Configuration
+
+# Application Settings
+app:
+  name: "NMAP Optimizer"
+  version: "1.0.0"
+  host: "0.0.0.0"
+  port: 5000
+  debug: false
+
+# Scan Profiles
+profiles:
+  quick:
+    timing: 4
+    ports: "--top-ports 100"
+    scripts: []
+    description: "Fast scan of top 100 ports"
+
+  balanced:
+    timing: 3
+    ports: "--top-ports 1000"
+    scripts: []
+    description: "Standard scan with service detection"
+
+  full:
+    timing: 3
+    ports: "-p-"
+    scripts: ["default"]
+    description: "Comprehensive all-port scan"
+
+  stealth:
+    timing: 1
+    ports: "--top-ports 1000"
+    scripts: []
+    additional_flags: "-sS -f"
+    description: "Stealthy scan to avoid detection"
+
+  webapp:
+    timing: 3
+    ports: "80,443,8080,8443"
+    scripts:
+      - "http-enum"
+      - "http-headers"
+      - "http-methods"
+      - "http-title"
+      - "http-robots.txt"
+    description: "Web application enumeration"
+
+  vuln:
+    timing: 3
+    ports: "--top-ports 1000"
+    scripts: ["vuln"]
+    description: "Vulnerability detection scan"
+
+# NSE Script Categories
+nse_scripts:
+  discovery:
+    - "dns-brute"
+    - "smb-enum-shares"
+    - "http-enum"
+
+  vulnerability:
+    - "vulners"
+    - "vuln"
+
+  authentication:
+    - "ssh-brute"
+    - "ftp-brute"
+    - "http-brute"
+
+  safe:
+    - "default"
+    - "safe"
+
+# Rate Limiting
+rate_limiting:
+  enabled: true
+  max_concurrent_scans: 3
+  scan_delay: 0
+
+# Logging
+logging:
+  level: "INFO"
+  file: "../logs/nmap_optimizer.log"
+  max_size: 10485760  # 10MB
+  backup_count: 5
+
+# Security
+security:
+  require_authorization: true
+  authorized_networks:
+    - "192.168.0.0/16"
+    - "10.0.0.0/8"
+  blocked_networks:
+    - "0.0.0.0/8"
+    - "127.0.0.0/8"
